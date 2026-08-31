@@ -16,6 +16,24 @@ export type TelegramSyncResult = {
 
 const SYNC_DIR = path.join(process.cwd(), "scripts", "telegram_channel");
 const SYNC_SCRIPT = path.join(SYNC_DIR, "sync.py");
+export const PYTHON_SYNC_SETUP_CMD =
+  "pip3 install -r scripts/telegram_channel/requirements.txt";
+
+function formatSyncError(stderr: string, stdout: string): string {
+  const output = `${stderr}\n${stdout}`.trim();
+  if (/ModuleNotFoundError|No module named/i.test(output)) {
+    return `Python залежності не встановлені. Виконайте на сервері: ${PYTHON_SYNC_SETUP_CMD}`;
+  }
+  return output || "Синхронізація не вдалась";
+}
+
+export function checkPythonSyncDependencies(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const child = spawn("python3", ["-c", "import telethon"], { cwd: SYNC_DIR });
+    child.on("close", (code) => resolve(code === 0));
+    child.on("error", () => resolve(false));
+  });
+}
 
 export function isTelegramChannelSyncConfigured(): boolean {
   return Boolean(process.env.TELEGRAM_API_ID && process.env.TELEGRAM_API_HASH);
@@ -65,10 +83,7 @@ export function runTelegramChannelSync(limit = 200): Promise<TelegramSyncResult>
       } catch {
         resolve({
           ok: false,
-          error:
-            stderr ||
-            trimmed ||
-            `Не вдалося прочитати результат синхронізації (code ${code})`,
+          error: formatSyncError(stderr, trimmed),
         });
       }
     });

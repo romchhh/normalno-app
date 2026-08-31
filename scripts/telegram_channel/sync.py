@@ -11,18 +11,62 @@ import sys
 from collections import OrderedDict
 from pathlib import Path
 
-from dotenv import load_dotenv
-from telethon import TelegramClient
-from telethon.tl.types import Message
-
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT / "scripts" / "telegram_channel") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts" / "telegram_channel"))
 
+SETUP_CMD = "pip3 install -r scripts/telegram_channel/requirements.txt"
+
+
+def load_env_file(path: Path) -> None:
+    if not path.is_file():
+        return
+
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key:
+            os.environ.setdefault(key, value)
+
+
+def load_env() -> None:
+    env_path = ROOT / ".env"
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv(env_path)
+    except ImportError:
+        load_env_file(env_path)
+
+
+def ensure_dependencies() -> None:
+    missing: list[str] = []
+    try:
+        import telethon  # noqa: F401
+    except ImportError:
+        missing.append("telethon")
+
+    if missing:
+        message = (
+            "Python залежності не встановлені. Виконайте на сервері: "
+            f"{SETUP_CMD}"
+        )
+        print(json.dumps({"ok": False, "error": message}, ensure_ascii=False))
+        raise SystemExit(1)
+
+
+load_env()
+ensure_dependencies()
+
+from telethon import TelegramClient  # noqa: E402
+from telethon.tl.types import Message  # noqa: E402
+
 from db import generate_uid, resolve_db_path, upsert_car  # noqa: E402
 from parser import is_car_post, parse_car_post  # noqa: E402
-
-load_dotenv(ROOT / ".env")
 
 DEFAULT_CHANNEL_ID = -1001949651952
 UPLOAD_DIR = ROOT / "public" / "uploads" / "cars"

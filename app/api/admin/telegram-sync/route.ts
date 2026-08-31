@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { canManageCars, requireAdmin } from "@/lib/admin-auth";
 import {
+  checkPythonSyncDependencies,
   isTelegramChannelSyncConfigured,
+  PYTHON_SYNC_SETUP_CMD,
   runTelegramChannelSync,
 } from "@/lib/telegram-channel-sync";
 
@@ -9,8 +11,12 @@ export async function GET() {
   const auth = await requireAdmin("content_manager");
   if ("error" in auth) return auth.error;
 
+  const pythonReady = await checkPythonSyncDependencies();
+
   return NextResponse.json({
     configured: isTelegramChannelSyncConfigured(),
+    pythonReady,
+    setupCommand: PYTHON_SYNC_SETUP_CMD,
     channelId: process.env.TELEGRAM_CHANNEL_ID || "-1001949651952",
     defaultLimit: Number(process.env.TELEGRAM_SYNC_LIMIT || 200),
   });

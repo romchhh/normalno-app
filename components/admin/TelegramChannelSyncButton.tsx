@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 
 type SyncStatus = {
   configured: boolean;
+  pythonReady: boolean;
+  setupCommand: string;
   channelId: string;
   defaultLimit: number;
 };
@@ -62,6 +64,13 @@ export default function TelegramChannelSyncButton() {
         </p>
       </div>
 
+      {!status?.pythonReady && (
+        <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          Встановіть Python залежності:{" "}
+          <code className="font-mono">{status?.setupCommand || "pip3 install -r scripts/telegram_channel/requirements.txt"}</code>
+        </p>
+      )}
+
       {!status?.configured && (
         <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
           Додайте TELEGRAM_API_ID і TELEGRAM_API_HASH у .env, потім один раз виконайте{" "}
@@ -72,7 +81,7 @@ export default function TelegramChannelSyncButton() {
       <button
         type="button"
         onClick={handleSync}
-        disabled={loading || !status?.configured}
+        disabled={loading || !status?.configured || !status?.pythonReady}
         className="admin-btn admin-btn-primary text-sm disabled:opacity-50"
       >
         {loading ? "Синхронізація..." : "Синхронізувати з каналом"}
