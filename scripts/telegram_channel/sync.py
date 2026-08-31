@@ -65,7 +65,7 @@ ensure_dependencies()
 from telethon import TelegramClient  # noqa: E402
 from telethon.tl.types import Message  # noqa: E402
 
-from db import generate_uid, resolve_db_path, upsert_car  # noqa: E402
+from db import generate_uid, get_car_photo, resolve_db_path, upsert_car  # noqa: E402
 from parser import is_car_post, parse_car_post  # noqa: E402
 
 DEFAULT_CHANNEL_ID = -1001949651952
@@ -76,7 +76,7 @@ SESSION_DEFAULT = ROOT / "scripts" / "telegram_channel" / "session"
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Sync cars from Telegram channel")
     parser.add_argument("--login", action="store_true", help="Authorize Telegram user session")
-    parser.add_argument("--limit", type=int, default=int(os.getenv("TELEGRAM_SYNC_LIMIT", "200")))
+    parser.add_argument("--limit", type=int, default=int(os.getenv("TELEGRAM_SYNC_LIMIT", "400")))
     parser.add_argument("--channel", type=int, default=int(os.getenv("TELEGRAM_CHANNEL_ID", str(DEFAULT_CHANNEL_ID))))
     parser.add_argument("--json", action="store_true", help="Print result as JSON")
     return parser.parse_args()
@@ -121,11 +121,18 @@ async def download_group_photos(
             continue
         filename = f"tg_{group_key}_{message.id}_{index}.jpg"
         target = upload_dir / filename
-        await client.download_media(message, file=str(target))
-        paths.append(f"/uploads/cars/{filename}")
+        web_path = f"/uploads/cars/{filename}"
+        if not target.exists():
+            await client.download_media(message, file=str(target))
+        if target.exists():
+            paths.append(web_path)
         index += 1
 
     return " ".join(paths)
+
+
+def group_has_photos(messages: list[Message]) -> bool:
+    return any(message.photo for message in messages)
 
 
 async def sync_channel(args: argparse.Namespace) -> dict:
@@ -141,6 +148,7 @@ async def sync_channel(args: argparse.Namespace) -> dict:
     stats = {
         "imported": 0,
         "updated": 0,
+        "photosAdded": 0,
         "skipped": 0,
         "errors": [],
         "processedGroups": 0,
@@ -172,8 +180,19 @@ async def sync_channel(args: argparse.Namespace) -> dict:
                     stats["skipped"] += 1
                     continue
 
-                photo = await download_group_photos(client, messages_in_group, group_key, UPLOAD_DIR)
                 external_id = f"tg:{args.channel}:{group_key}"
+                existing_photo = get_car_photo(db_path, external_id)
+                photo: str | None = existing_photo
+
+                if group_has_photos(messages_in_group) and not existing_photo:
+                    downloaded = await download_group_photos(
+                        client, messages_in_group, group_key, UPLOAD_DIR
+                    )
+                    if downloaded.strip():
+                        photo = downloaded
+                        stats["photosAdded"] += 1
+                elif not existing_photo:
+                    photo = None
 
                 result = upsert_car(
                     db_path,

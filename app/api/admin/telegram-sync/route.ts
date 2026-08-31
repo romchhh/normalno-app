@@ -18,7 +18,7 @@ export async function GET() {
     pythonReady,
     setupCommand: PYTHON_SYNC_SETUP_CMD,
     channelId: process.env.TELEGRAM_CHANNEL_ID || "-1001949651952",
-    defaultLimit: Number(process.env.TELEGRAM_SYNC_LIMIT || 200),
+    defaultLimit: Number(process.env.TELEGRAM_SYNC_LIMIT || 400),
   });
 }
 
@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
     const limit = Math.min(
-      500,
-      Math.max(1, Number(body.limit || process.env.TELEGRAM_SYNC_LIMIT || 200))
+      600,
+      Math.max(1, Number(body.limit || process.env.TELEGRAM_SYNC_LIMIT || 400))
     );
 
     const result = await runTelegramChannelSync(limit);

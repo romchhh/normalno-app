@@ -31,6 +31,32 @@ def find_by_external_id(conn: sqlite3.Connection, external_id: str) -> Optional[
     return int(row[0]) if row else None
 
 
+def get_car_photo(db_path: Path, external_id: str) -> Optional[str]:
+    conn = sqlite3.connect(db_path)
+    try:
+        row = conn.execute(
+            'SELECT "photo" FROM "Car" WHERE "externalId" = ? LIMIT 1',
+            (external_id,),
+        ).fetchone()
+        if not row:
+            return None
+        photo = row[0]
+        if photo is None:
+            return None
+        text = str(photo).strip()
+        return text or None
+    finally:
+        conn.close()
+
+
+def merge_photo(current: Optional[str], incoming: Optional[str]) -> Optional[str]:
+    if incoming and str(incoming).strip():
+        return str(incoming).strip()
+    if current and str(current).strip():
+        return str(current).strip()
+    return None
+
+
 def upsert_car(
     db_path: Path,
     *,
@@ -59,6 +85,13 @@ def upsert_car(
     try:
         existing_id = find_by_external_id(conn, external_id)
         if existing_id:
+            current_row = conn.execute(
+                'SELECT "photo" FROM "Car" WHERE id = ? LIMIT 1',
+                (existing_id,),
+            ).fetchone()
+            current_photo = current_row[0] if current_row else None
+            final_photo = merge_photo(current_photo, photo)
+
             conn.execute(
                 """
                 UPDATE "Car"
@@ -103,7 +136,7 @@ def upsert_car(
                     description,
                     category,
                     body_type,
-                    photo,
+                    final_photo,
                     now,
                     existing_id,
                 ),

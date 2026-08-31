@@ -14,6 +14,7 @@ type SyncResult = {
   imported?: number;
   updated?: number;
   skipped?: number;
+  photosAdded?: number;
   processedGroups?: number;
   errors?: string[];
   error?: string;
@@ -39,7 +40,7 @@ export default function TelegramChannelSyncButton() {
       const res = await fetch("/api/admin/telegram-sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ limit: status?.defaultLimit || 200 }),
+        body: JSON.stringify({ limit: status?.defaultLimit || 400 }),
       });
       const data = (await res.json()) as SyncResult;
       if (!res.ok) {
@@ -59,7 +60,7 @@ export default function TelegramChannelSyncButton() {
       <div>
         <h3 className="font-semibold text-gray-900">Telegram канал</h3>
         <p className="text-sm text-muted mt-1">
-          Підтягнути останні {status?.defaultLimit || 200} постів з каналу{" "}
+          Підтягнути останні {status?.defaultLimit || 400} постів з каналу{" "}
           <span className="font-mono">{status?.channelId || "-1001949651952"}</span>
         </p>
       </div>
@@ -99,8 +100,8 @@ export default function TelegramChannelSyncButton() {
             result.error
           ) : (
             <>
-              Додано: {result.imported ?? 0}, оновлено: {result.updated ?? 0}, пропущено:{" "}
-              {result.skipped ?? 0}
+              Додано: {result.imported ?? 0}, оновлено: {result.updated ?? 0}, фото
+              додано: {result.photosAdded ?? 0}, пропущено: {result.skipped ?? 0}
               {result.errors && result.errors.length > 0 && (
                 <div className="mt-2 text-xs text-red-700">
                   Помилки: {result.errors.slice(0, 3).join("; ")}

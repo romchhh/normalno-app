@@ -2,7 +2,9 @@
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VENV="$DIR/.venv"
+ROOT="$(cd "$DIR/../.." && pwd)"
+VENV="$ROOT/.venv-telegram"
+LEGACY_VENV="$DIR/.venv"
 
 if ! command -v python3 >/dev/null 2>&1; then
   echo "python3 не знайдено. На Ubuntu: apt install -y python3 python3-venv"
@@ -12,6 +14,10 @@ fi
 if ! python3 -m venv --help >/dev/null 2>&1; then
   echo "python3-venv не встановлено. На Ubuntu: apt install -y python3-venv"
   exit 1
+fi
+
+if [ -d "$LEGACY_VENV" ] && [ ! -d "$VENV" ]; then
+  echo "Знайдено старий venv: $LEGACY_VENV (залишаємо для сумісності)"
 fi
 
 if [ ! -d "$VENV" ]; then
