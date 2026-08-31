@@ -1,0 +1,399 @@
+.wizard-title {
+  font-size: 1.75rem;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.wizard-subtitle {
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.wizard-option {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  min-height: 5rem;
+  padding: 1.25rem 1.5rem;
+  text-align: left;
+  background: white;
+  border: 2px solid var(--border);
+  border-radius: 1.25rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.wizard-option:active {
+  transform: scale(0.99);
+}
+
+.wizard-option:hover,
+.wizard-option-selected {
+  border-color: color-mix(in oklab, var(--brand) 45%, var(--border));
+  box-shadow: 0 8px 24px rgba(255, 136, 0, 0.08);
+}
+
+.wizard-option-selected {
+  background: color-mix(in oklab, var(--brand-light) 65%, white);
+}
+
+.wizard-chip {
+  padding: 0.875rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 2px solid var(--border);
+  transition: all 0.15s ease;
+}
+
+.wizard-chip-selected {
+  background: var(--brand);
+  color: white;
+  border-color: var(--brand);
+}
+
+.wizard-input {
+  width: 100%;
+  padding: 1rem 1.25rem;
+  font-size: 1.125rem;
+  border: 2px solid var(--border);
+  border-radius: 1rem;
+  background: white;
+}
+
+.wizard-input:focus {
+  outline: none;
+  border-color: color-mix(in oklab, var(--brand) 50%, var(--border));
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--brand) 12%, transparent);
+}
+
+.wizard-highlight {
+  font-size: 2.5rem;
+  line-height: 1.1;
+  font-weight: 800;
+  color: var(--brand);
+}
+
+.wizard-stat-card {
+  padding: 1.25rem 1.5rem;
+  border-radius: 1.25rem;
+  border: 2px solid var(--border);
+  background: white;
+}
+
+.wizard-stat-card-accent {
+  border-color: color-mix(in oklab, var(--brand) 35%, var(--border));
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--brand-light) 80%, white),
+    white
+  );
+}
+
+.wizard-btn-primary {
+  width: 100%;
+  min-height: 3.75rem;
+  padding: 1rem 1.5rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  border-radius: 1rem;
+}
+
+.wizard-slider {
+  width: 100%;
+  height: 0.5rem;
+  accent-color: var(--brand);
+  cursor: pointer;
+}
+
+.wizard-step-btn {
+  width: 3.5rem;
+  height: 3.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  font-weight: 700;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: white;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.wizard-step-btn:active {
+  background: var(--brand-light);
+  border-color: color-mix(in oklab, var(--brand) 40%, var(--border));
+}
+
+.wizard-progress-bar {
+  height: 0.375rem;
+  border-radius: 999px;
+}
+
+.wizard-loader-check {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* Bottom sheets / modals */
+.wizard-sheet-root {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  background: rgba(15, 23, 42, 0);
+  backdrop-filter: blur(0);
+  transition: background 0.28s ease, backdrop-filter 0.28s ease;
+}
+
+.wizard-sheet-root-visible {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+.wizard-sheet {
+  width: 100%;
+  max-width: 32rem;
+  max-height: 90dvh;
+  overflow-y: auto;
+  padding: 0.75rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
+  background: white;
+  border-radius: 1.5rem 1.5rem 0 0;
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.12);
+  transform: translateY(100%);
+  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.wizard-sheet-visible {
+  transform: translateY(0);
+}
+
+.wizard-sheet-compact {
+  text-align: center;
+}
+
+.wizard-sheet-handle {
+  width: 2.75rem;
+  height: 0.3125rem;
+  margin: 0 auto 1.25rem;
+  border-radius: 999px;
+  background: var(--border);
+}
+
+.wizard-sheet-title {
+  font-size: 1.375rem;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+}
+
+.wizard-sheet-subtitle {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--muted);
+  margin-bottom: 1.25rem;
+}
+
+.wizard-sheet-input-wrap {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.wizard-sheet-input {
+  width: 100%;
+  padding: 1.125rem 3.5rem 1.125rem 1.25rem;
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  border: 2px solid var(--border);
+  border-radius: 1rem;
+  background: white;
+  color: var(--foreground);
+}
+
+.wizard-sheet-input:focus {
+  outline: none;
+  border-color: color-mix(in oklab, var(--brand) 55%, var(--border));
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--brand) 14%, transparent);
+}
+
+.wizard-sheet-suffix {
+  position: absolute;
+  right: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.wizard-sheet-error {
+  margin: -0.25rem 0 0.75rem;
+  font-size: 0.9375rem;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.wizard-sheet-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.wizard-sheet-quick-btn {
+  padding: 0.625rem 1rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: white;
+  transition: all 0.15s ease;
+}
+
+.wizard-sheet-quick-btn-active {
+  border-color: var(--brand);
+  background: var(--brand-light);
+  color: var(--brand);
+}
+
+.wizard-sheet-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 0.75rem;
+}
+
+.wizard-sheet-btn-primary,
+.wizard-sheet-btn-secondary {
+  min-height: 3.25rem;
+  padding: 0.875rem 1.25rem;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  border-radius: 1rem;
+  border: none;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+}
+
+.wizard-sheet-btn-primary:active,
+.wizard-sheet-btn-secondary:active {
+  transform: scale(0.98);
+}
+
+.wizard-sheet-btn-primary {
+  background: var(--brand);
+  color: white;
+}
+
+.wizard-sheet-btn-primary:hover {
+  background: var(--brand-hover);
+}
+
+.wizard-sheet-btn-secondary {
+  background: white;
+  color: var(--foreground);
+  border: 2px solid var(--border);
+}
+
+.wizard-sheet-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--brand);
+  background: var(--brand-light);
+  border-radius: 999px;
+}
+
+.wizard-body-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.375rem;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  border-radius: 999px;
+  border: 2px solid var(--border);
+  background: white;
+  transition: all 0.15s ease;
+}
+
+.wizard-body-chip-selected {
+  border-color: var(--brand);
+  background: var(--brand-light);
+  color: var(--brand);
+}
+
+.wizard-brand-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  min-height: 5.25rem;
+  padding: 0.625rem 0.375rem;
+  border: 2px solid var(--border);
+  border-radius: 1rem;
+  background: white;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+}
+
+.wizard-brand-card:active {
+  transform: scale(0.97);
+}
+
+.wizard-brand-card-selected {
+  border-color: var(--brand);
+  background: color-mix(in oklab, var(--brand-light) 70%, white);
+  box-shadow: 0 4px 16px rgba(255, 136, 0, 0.12);
+}
+
+.wizard-brand-icon-wrap {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wizard-brand-icon {
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+}
+
+.wizard-brand-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--foreground);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 0.125rem;
+}
+
+@media (min-width: 380px) {
+  .wizard-brand-label {
+    font-size: 0.75rem;
+  }
+}
+

@@ -1,0 +1,44 @@
+{
+  "name": "normalno-auto",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "postinstall": "prisma generate",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "bot": "tsx scripts/telegram-bot.ts",
+    "bot:dev": "tsx watch scripts/telegram-bot.ts",
+    "seed": "tsx scripts/seed.ts",
+    "tg-sync": "python3 scripts/telegram_channel/sync.py --json",
+    "tg-sync:login": "python3 scripts/telegram_channel/sync.py --login"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.0",
+    "dotenv": "^17.2.3",
+    "next": "16.0.1",
+    "node-telegram-bot-api": "^0.66.0",
+    "prisma": "^6.19.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "swiper": "^12.0.3",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/node-telegram-bot-api": "^0.64.12",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.1",
+    "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5"
+  }
+}

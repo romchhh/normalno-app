@@ -1,0 +1,40 @@
+{
+  "k": 1,
+  "defaultTermMonths": 36,
+  "paymentMin": 8000,
+  "paymentMax": 35000,
+  "paymentStep": 1000,
+  "defaultMonthlyPayment": 18000,
+  "bitrixWebhookUrl": "",
+  "leasing": {
+    "annualRate": 0.2725,
+    "optimalAdvance": 0.33,
+    "accessibleAdvance": 0.25,
+    "orgFee": 0.07,
+    "kaskoRate": 0.0175,
+    "serviceRate": 0.03,
+    "insuranceMonths": 12,
+    "maxPaymentMultiplier": 1.2222222222
+  },
+  "motivations": [
+    { "id": "newer", "label": "Новіше на 3–5 років" },
+    { "id": "reliable", "label": "Надійніше" },
+    { "id": "bigger", "label": "Більше / сімейніше" },
+    { "id": "comfort", "label": "Комфортніше" },
+    { "id": "premium", "label": "Преміальніше" },
+    { "id": "economy", "label": "Економніше" }
+  ],
+  "bodyTypes": [
+    { "id": "suv", "label": "SUV", "icon": "🚙" },
+    { "id": "sedan", "label": "Sedan", "icon": "🚗" },
+    { "id": "ev", "label": "EV", "icon": "⚡" }
+  ],
+  "popularBrandIds": [
+    "toyota",
+    "lexus",
+    "bmw",
+    "mercedes-benz",
+    "volkswagen",
+    "tesla"
+  ]
+}
