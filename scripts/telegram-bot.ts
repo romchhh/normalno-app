@@ -1,14 +1,10 @@
-import TelegramBot from "node-telegram-bot-api";
 import dotenv from "dotenv";
-import {
-  handleAppCommand,
-  handleHelpCommand,
-  handleStartCommand,
-} from "../lib/telegram-bot";
+import { run } from "node-telegram-bot-api/node";
+import { ensureBot, getTelegramBotToken } from "../lib/telegram-bot";
 
 dotenv.config();
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const BOT_TOKEN = getTelegramBotToken();
 
 if (!BOT_TOKEN) {
   console.error("❌ TELEGRAM_BOT_TOKEN is not set in .env");
@@ -20,38 +16,23 @@ if (!/^\d+:[A-Za-z0-9_-]+$/.test(BOT_TOKEN)) {
   process.exit(1);
 }
 
-const bot = new TelegramBot(BOT_TOKEN, { polling: true });
+async function main() {
+  const bot = ensureBot();
 
-bot
-  .getMe()
-  .then((info) => {
-    console.log(`✅ Bot @${info.username} online (polling)`);
-  })
-  .catch((error) => {
-    console.error("❌ Failed to connect:", error.message);
+  try {
+    const me = await bot.api.getMe();
+    console.log(`✅ Bot @${me.username} online (polling)`);
+  } catch (error) {
+    console.error("❌ Failed to connect:", error instanceof Error ? error.message : error);
     process.exit(1);
-  });
+  }
 
-bot.onText(/\/start(?:\s+.*)?/, async (msg) => {
-  await handleStartCommand(msg);
-});
+  bot.catch((err) => console.error("❌ Bot error:", err));
 
-bot.onText(/\/help(?:\s+.*)?/, async (msg) => {
-  await handleHelpCommand(msg);
-});
+  await run(bot);
+}
 
-bot.onText(/\/app(?:\s+.*)?/, async (msg) => {
-  await handleAppCommand(msg);
-});
-
-bot.on("error", (error) => console.error("❌ Bot error:", error));
-bot.on("polling_error", (error) => console.error("❌ Polling error:", error));
-
-process.on("SIGINT", () => {
-  bot.stopPolling();
-  process.exit(0);
-});
-process.on("SIGTERM", () => {
-  bot.stopPolling();
-  process.exit(0);
+main().catch((error) => {
+  console.error("❌ Bot crashed:", error);
+  process.exit(1);
 });

@@ -1,10 +1,12 @@
-import TelegramBot from "node-telegram-bot-api";
+import { Bot, InlineKeyboardBuilder, Api } from "node-telegram-bot-api";
+import type { InlineKeyboardMarkup, Message, Update } from "node-telegram-bot-api";
+import { fromPath } from "node-telegram-bot-api/node";
 import { prisma } from "./db";
 import { BRAND_NAME, BRAND_URL } from "@/lib/brand";
 
 const WEB_APP_URL = process.env.WEB_APP_URL || `${BRAND_URL}/wizard`;
 
-let botInstance: TelegramBot | null = null;
+let botInstance: Bot | null = null;
 
 export function getTelegramBotToken(): string | null {
   const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
@@ -15,15 +17,46 @@ export function isTelegramBotConfigured(): boolean {
   return !!getTelegramBotToken();
 }
 
-export function getBot(): TelegramBot {
+export function registerBotHandlers(bot: Bot) {
+  bot.command("start", async (ctx) => {
+    if (!ctx.message || !ctx.from) return;
+    const payload = typeof ctx.match === "string" ? ctx.match.trim() : "";
+    const message =
+      payload.length > 0
+        ? { ...ctx.message, text: `/start ${payload}` }
+        : ctx.message;
+    await handleStartCommand(message);
+  });
+
+  bot.command("help", async (ctx) => {
+    if (!ctx.message) return;
+    await handleHelpCommand(ctx.message);
+  });
+
+  bot.command("app", async (ctx) => {
+    if (!ctx.message) return;
+    await handleAppCommand(ctx.message);
+  });
+}
+
+export function ensureBot(): Bot {
   const token = getTelegramBotToken();
   if (!token) {
     throw new Error("TELEGRAM_BOT_TOKEN is not set");
   }
   if (!botInstance) {
-    botInstance = new TelegramBot(token, { polling: false });
+    botInstance = new Bot(token);
+    registerBotHandlers(botInstance);
   }
   return botInstance;
+}
+
+export function getBot(): Bot {
+  return ensureBot();
+}
+
+export function getApi(): Api {
+  return ensureBot().api;
 }
 
 function appUrls() {
@@ -33,7 +66,7 @@ function appUrls() {
   return { wizardUrl, siteBase, catalogUrl: `${siteBase}/catalog` };
 }
 
-export async function upsertBotUser(msg: TelegramBot.Message) {
+export async function upsertBotUser(msg: Message) {
   const user = msg.from;
   if (!user) return null;
 
@@ -61,20 +94,19 @@ export async function upsertBotUser(msg: TelegramBot.Message) {
   });
 }
 
-function welcomeKeyboard() {
+function welcomeKeyboard(): InlineKeyboardMarkup {
   const { wizardUrl, catalogUrl } = appUrls();
-  return {
-    inline_keyboard: [
-      [{ text: "✨ Підібрати авто за 2 хв", web_app: { url: wizardUrl } }],
-      [{ text: "🚗 Переглянути каталог", web_app: { url: catalogUrl } }],
-    ],
-  };
+  return new InlineKeyboardBuilder()
+    .webApp("✨ Підібрати авто за 2 хв", wizardUrl)
+    .row()
+    .webApp("🚗 Переглянути каталог", catalogUrl)
+    .build();
 }
 
 export async function sendWelcomeMessage(
   chatId: number | string,
   firstName: string,
-  bot: TelegramBot = getBot()
+  api: Api = getApi()
 ) {
   const name = (firstName?.trim() || "друже")
     .replace(/&/g, "&amp;")
@@ -93,16 +125,18 @@ export async function sendWelcomeMessage(
 
 Оберіть, з чого почати 👇`;
 
-  await bot.sendMessage(chatId, text, {
+  await api.sendMessage({
+    chat_id: Number(chatId),
+    text,
     parse_mode: "HTML",
     reply_markup: welcomeKeyboard(),
   });
 }
 
-export async function handleStartCommand(msg: TelegramBot.Message) {
+export async function handleStartCommand(msg: Message) {
   const chatId = msg.chat.id;
   const user = msg.from;
-  const bot = getBot();
+  const api = getApi();
 
   if (!user) return;
 
@@ -120,81 +154,63 @@ export async function handleStartCommand(msg: TelegramBot.Message) {
       });
 
       if (car) {
-        const { siteBase } = appUrls();
-        await bot.sendMessage(
-          chatId,
-          `👇🏻 З вами поділились авто:
+        const { siteBase, wizardUrl } = appUrls();
+        await api.sendMessage({
+          chat_id: chatId,
+          text: `👇🏻 З вами поділились авто:
 
 ${car.title}
 
 Натисніть кнопку для перегляду:`,
-          {
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  {
-                    text: "🚗 Переглянути авто",
-                    web_app: { url: `${siteBase}/car/${car.id}` },
-                  },
-                ],
-                [{ text: "⭐ Підібрати авто", web_app: { url: appUrls().wizardUrl } }],
-              ],
-            },
-          }
-        );
+          reply_markup: new InlineKeyboardBuilder()
+            .webApp("🚗 Переглянути авто", `${siteBase}/car/${car.id}`)
+            .row()
+            .webApp("⭐ Підібрати авто", wizardUrl)
+            .build(),
+        });
         return;
       }
     }
 
-    await sendWelcomeMessage(chatId, user.first_name, bot);
+    await sendWelcomeMessage(chatId, user.first_name, api);
   } catch (error) {
     console.error("Error handling start command:", error);
     try {
-      await bot.sendMessage(chatId, "Вибачте, сталася помилка. Спробуйте пізніше.");
+      await api.sendMessage({
+        chat_id: chatId,
+        text: "Вибачте, сталася помилка. Спробуйте пізніше.",
+      });
     } catch {
       /* ignore */
     }
   }
 }
 
-export async function handleHelpCommand(msg: TelegramBot.Message) {
-  const bot = getBot();
-  await bot.sendMessage(
-    msg.chat.id,
-    `Допомога ${BRAND_NAME}:
+export async function handleHelpCommand(msg: Message) {
+  await getApi().sendMessage({
+    chat_id: msg.chat.id,
+    text: `Допомога ${BRAND_NAME}:
 
 /start — головне меню та застосунок
 /app — відкрити підбір авто
-/help — ця підказка`
-  );
-}
-
-export async function handleAppCommand(msg: TelegramBot.Message) {
-  await upsertBotUser(msg);
-  const bot = getBot();
-  const { wizardUrl } = appUrls();
-  await bot.sendMessage(msg.chat.id, "Відкрийте підбір авто:", {
-    reply_markup: {
-      inline_keyboard: [[{ text: "⭐ Відкрити застосунок", web_app: { url: wizardUrl } }]],
-    },
+/help — ця підказка`,
   });
 }
 
-export async function handleWebhookUpdate(update: TelegramBot.Update) {
-  const text = update.message?.text;
-  if (!text || !update.message) return;
+export async function handleAppCommand(msg: Message) {
+  await upsertBotUser(msg);
+  const { wizardUrl } = appUrls();
+  await getApi().sendMessage({
+    chat_id: msg.chat.id,
+    text: "Відкрийте підбір авто:",
+    reply_markup: new InlineKeyboardBuilder()
+      .webApp("⭐ Відкрити застосунок", wizardUrl)
+      .build(),
+  });
+}
 
-  if (text === "/start" || text.startsWith("/start")) {
-    await handleStartCommand(update.message);
-    return;
-  }
-  if (text === "/help" || text.startsWith("/help")) {
-    await handleHelpCommand(update.message);
-    return;
-  }
-  if (text === "/app" || text.startsWith("/app")) {
-    await handleAppCommand(update.message);
-  }
+export async function handleWebhookUpdate(update: Update) {
+  await ensureBot().handleUpdate(update);
 }
 
 export type BroadcastLinkButton = {
@@ -212,23 +228,25 @@ export type BroadcastResult = {
 function buildBroadcastKeyboard(params: {
   withAppButton?: boolean;
   buttons?: BroadcastLinkButton[];
-}): TelegramBot.InlineKeyboardMarkup | undefined {
-  const rows: TelegramBot.InlineKeyboardButton[][] = [];
+}): InlineKeyboardMarkup | undefined {
+  const kb = new InlineKeyboardBuilder();
   const { wizardUrl } = appUrls();
+  let hasButtons = false;
 
   for (const btn of params.buttons || []) {
     const label = btn.text?.trim();
     const url = btn.url?.trim();
     if (!label || !url) continue;
-    rows.push([{ text: label.slice(0, 64), url }]);
+    kb.url(label.slice(0, 64), url).row();
+    hasButtons = true;
   }
 
   if (params.withAppButton) {
-    rows.push([{ text: "✨ Відкрити застосунок", web_app: { url: wizardUrl } }]);
+    kb.webApp("✨ Відкрити застосунок", wizardUrl);
+    hasButtons = true;
   }
 
-  if (rows.length === 0) return undefined;
-  return { inline_keyboard: rows };
+  return hasButtons ? kb.build() : undefined;
 }
 
 /** Розсилка всім користувачам бота з chatId. */
@@ -239,7 +257,7 @@ export async function broadcastToAllUsers(params: {
   parseMode?: "HTML" | "Markdown" | "MarkdownV2";
   photoPath?: string | null;
 }): Promise<BroadcastResult> {
-  const bot = getBot();
+  const api = getApi();
   const users = await prisma.user.findMany({
     where: { chatId: { not: null }, isBot: false },
     select: { chatId: true, telegramId: true },
@@ -273,22 +291,29 @@ export async function broadcastToAllUsers(params: {
       if (hasPhoto && params.photoPath) {
         const caption =
           params.text.length > 1024 ? `${params.text.slice(0, 1020)}…` : params.text;
-        await bot.sendPhoto(chatId, params.photoPath, {
+        const photo = await fromPath(params.photoPath);
+        await api.sendPhoto({
+          chat_id: Number(chatId),
+          photo,
           caption,
           parse_mode: parseMode,
           reply_markup: replyMarkup,
         });
         if (params.text.length > 1024) {
-          await bot.sendMessage(chatId, params.text, {
+          await api.sendMessage({
+            chat_id: Number(chatId),
+            text: params.text,
             parse_mode: parseMode,
-            disable_web_page_preview: true,
+            link_preview_options: { is_disabled: true },
           });
         }
       } else {
-        await bot.sendMessage(chatId, params.text, {
+        await api.sendMessage({
+          chat_id: Number(chatId),
+          text: params.text,
           parse_mode: parseMode,
           reply_markup: replyMarkup,
-          disable_web_page_preview: true,
+          link_preview_options: { is_disabled: true },
         });
       }
       result.sent += 1;
@@ -316,5 +341,4 @@ export async function countBroadcastAudience(): Promise<number> {
   return new Set(users.map((u) => u.chatId).filter(Boolean)).size;
 }
 
-// keep export for older imports
 export { WEB_APP_URL };

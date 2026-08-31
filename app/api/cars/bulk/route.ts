@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { upload_cars } from "@/lib/cars-db";
 import { prisma } from "@/lib/db";
-import * as XLSX from "xlsx";
+import * as XLSX from "@e965/xlsx";
 
 export async function POST(request: NextRequest) {
   try {

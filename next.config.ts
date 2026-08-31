@@ -12,12 +12,7 @@ const nextConfig: NextConfig = {
     ],
     localPatterns: [{ pathname: "/**" }],
   },
-  serverExternalPackages: [
-    "node-telegram-bot-api",
-    "array.prototype.findindex",
-    "asn1",
-    "assert-plus",
-  ],
+  serverExternalPackages: ["node-telegram-bot-api"],
   experimental: {
     optimizePackageImports: ["swiper"],
   },
