@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT / "scripts" / "telegram_channel") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts" / "telegram_channel"))
 
-SETUP_CMD = "pip3 install -r scripts/telegram_channel/requirements.txt"
+SETUP_CMD = "npm run tg-sync:setup"
 
 
 def load_env_file(path: Path) -> None:

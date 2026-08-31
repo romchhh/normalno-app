@@ -17,9 +17,9 @@
     "bot": "tsx scripts/telegram-bot.ts",
     "bot:dev": "tsx watch scripts/telegram-bot.ts",
     "seed": "tsx scripts/seed.ts",
-    "tg-sync": "python3 scripts/telegram_channel/sync.py --json",
-    "tg-sync:login": "python3 scripts/telegram_channel/sync.py --login",
-    "tg-sync:setup": "pip3 install -r scripts/telegram_channel/requirements.txt"
+    "tg-sync": "scripts/telegram_channel/.venv/bin/python3 scripts/telegram_channel/sync.py --json",
+    "tg-sync:login": "scripts/telegram_channel/.venv/bin/python3 scripts/telegram_channel/sync.py --login",
+    "tg-sync:setup": "bash scripts/telegram_channel/setup.sh"
   },
   "dependencies": {
     "@e965/xlsx": "^0.20.3",

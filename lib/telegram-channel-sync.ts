@@ -1,4 +1,5 @@
 import { spawn } from "child_process";
+import { existsSync } from "fs";
 import path from "path";
 
 export type TelegramSyncResult = {
@@ -16,20 +17,33 @@ export type TelegramSyncResult = {
 
 const SYNC_DIR = path.join(process.cwd(), "scripts", "telegram_channel");
 const SYNC_SCRIPT = path.join(SYNC_DIR, "sync.py");
-export const PYTHON_SYNC_SETUP_CMD =
-  "pip3 install -r scripts/telegram_channel/requirements.txt";
+const VENV_PYTHON = path.join(SYNC_DIR, ".venv", "bin", "python3");
+
+export const PYTHON_SYNC_SETUP_CMD = "npm run tg-sync:setup";
+
+export function getTelegramSyncPythonBin(): string {
+  const custom = process.env.TELEGRAM_PYTHON_BIN?.trim();
+  if (custom) return custom;
+  if (existsSync(VENV_PYTHON)) return VENV_PYTHON;
+  return "python3";
+}
 
 function formatSyncError(stderr: string, stdout: string): string {
   const output = `${stderr}\n${stdout}`.trim();
   if (/ModuleNotFoundError|No module named/i.test(output)) {
-    return `Python залежності не встановлені. Виконайте на сервері: ${PYTHON_SYNC_SETUP_CMD}`;
+    return `Python залежності не встановлені. Виконайте: ${PYTHON_SYNC_SETUP_CMD}`;
+  }
+  if (/externally-managed-environment/i.test(output)) {
+    return `Системний pip заблоковано. Виконайте: ${PYTHON_SYNC_SETUP_CMD}`;
   }
   return output || "Синхронізація не вдалась";
 }
 
 export function checkPythonSyncDependencies(): Promise<boolean> {
   return new Promise((resolve) => {
-    const child = spawn("python3", ["-c", "import telethon"], { cwd: SYNC_DIR });
+    const child = spawn(getTelegramSyncPythonBin(), ["-c", "import telethon"], {
+      cwd: SYNC_DIR,
+    });
     child.on("close", (code) => resolve(code === 0));
     child.on("error", () => resolve(false));
   });
@@ -42,7 +56,7 @@ export function isTelegramChannelSyncConfigured(): boolean {
 export function runTelegramChannelSync(limit = 200): Promise<TelegramSyncResult> {
   return new Promise((resolve, reject) => {
     const child = spawn(
-      "python3",
+      getTelegramSyncPythonBin(),
       [SYNC_SCRIPT, "--limit", String(limit), "--json"],
       {
         cwd: SYNC_DIR,
