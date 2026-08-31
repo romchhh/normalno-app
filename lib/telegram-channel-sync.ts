@@ -165,7 +165,10 @@ export function runTelegramChannelSync(limit = 400): Promise<TelegramSyncResult>
       [paths.syncScript, "--limit", String(limit), "--json"],
       {
         cwd: paths.syncDir,
-        env: process.env,
+        env: {
+          ...process.env,
+          PROJECT_ROOT: paths.projectRoot,
+        },
       }
     );
 

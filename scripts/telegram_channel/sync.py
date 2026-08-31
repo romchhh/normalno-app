@@ -11,9 +11,9 @@ import sys
 from collections import OrderedDict
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-if str(ROOT / "scripts" / "telegram_channel") not in sys.path:
-    sys.path.insert(0, str(ROOT / "scripts" / "telegram_channel"))
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
 
 SETUP_CMD = "npm run tg-sync:setup"
 
@@ -33,14 +33,26 @@ def load_env_file(path: Path) -> None:
             os.environ.setdefault(key, value)
 
 
-def load_env() -> None:
-    env_path = ROOT / ".env"
-    try:
-        from dotenv import load_dotenv
+def load_env(root: Path) -> None:
+    env_candidates = [
+        root / ".env",
+        SCRIPT_DIR.parents[1] / ".env",
+        SCRIPT_DIR.parents[2] / ".env",
+        Path.cwd() / ".env",
+    ]
 
-        load_dotenv(env_path)
-    except ImportError:
-        load_env_file(env_path)
+    seen: set[Path] = set()
+    for env_path in env_candidates:
+        resolved = env_path.resolve()
+        if resolved in seen or not resolved.is_file():
+            continue
+        seen.add(resolved)
+        try:
+            from dotenv import load_dotenv
+
+            load_dotenv(resolved, override=False)
+        except ImportError:
+            load_env_file(resolved)
 
 
 def ensure_dependencies() -> None:
@@ -59,18 +71,40 @@ def ensure_dependencies() -> None:
         raise SystemExit(1)
 
 
-load_env()
 ensure_dependencies()
 
 from telethon import TelegramClient  # noqa: E402
 from telethon.tl.types import Message  # noqa: E402
 
-from db import generate_uid, get_car_photo, resolve_db_path, upsert_car  # noqa: E402
+from db import (  # noqa: E402
+    generate_uid,
+    get_car_photo,
+    resolve_db_path,
+    resolve_project_root,
+    upsert_car,
+)
 from parser import is_car_post, parse_car_post  # noqa: E402
 
+ROOT = resolve_project_root(SCRIPT_DIR / "sync.py")
+load_env(ROOT)
+
 DEFAULT_CHANNEL_ID = -1001949651952
-UPLOAD_DIR = ROOT / "public" / "uploads" / "cars"
-SESSION_DEFAULT = ROOT / "scripts" / "telegram_channel" / "session"
+
+
+def project_paths(root: Path) -> dict[str, Path]:
+    return {
+        "upload_dir": root / "public" / "uploads" / "cars",
+        "session_default": root / "scripts" / "telegram_channel" / "session",
+    }
+
+
+def resolve_session_path(root: Path) -> str:
+    paths = project_paths(root)
+    session_path = os.getenv("TELEGRAM_SESSION_PATH", str(paths["session_default"])).strip()
+    session = Path(session_path)
+    if not session.is_absolute():
+        session = (root / session_path).resolve()
+    return str(session)
 
 
 def parse_args() -> argparse.Namespace:
@@ -136,14 +170,17 @@ def group_has_photos(messages: list[Message]) -> bool:
 
 
 async def sync_channel(args: argparse.Namespace) -> dict:
+    root = resolve_project_root(SCRIPT_DIR / "sync.py")
+    paths = project_paths(root)
+
     api_id = os.getenv("TELEGRAM_API_ID")
     api_hash = os.getenv("TELEGRAM_API_HASH")
     if not api_id or not api_hash:
         raise RuntimeError("Додайте TELEGRAM_API_ID та TELEGRAM_API_HASH у .env")
 
-    session_path = os.getenv("TELEGRAM_SESSION_PATH", str(SESSION_DEFAULT))
+    session_path = resolve_session_path(root)
     database_url = os.getenv("DATABASE_URL", "file:./dev.db")
-    db_path = resolve_db_path(ROOT, database_url)
+    db_path = resolve_db_path(root, database_url)
 
     stats = {
         "imported": 0,
@@ -154,6 +191,8 @@ async def sync_channel(args: argparse.Namespace) -> dict:
         "processedGroups": 0,
         "channelId": args.channel,
         "limit": args.limit,
+        "projectRoot": str(root),
+        "databasePath": str(db_path),
     }
 
     client = TelegramClient(session_path, int(api_id), api_hash)
@@ -186,7 +225,7 @@ async def sync_channel(args: argparse.Namespace) -> dict:
 
                 if group_has_photos(messages_in_group) and not existing_photo:
                     downloaded = await download_group_photos(
-                        client, messages_in_group, group_key, UPLOAD_DIR
+                        client, messages_in_group, group_key, paths["upload_dir"]
                     )
                     if downloaded.strip():
                         photo = downloaded

@@ -2,20 +2,114 @@
 
 from __future__ import annotations
 
+import os
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal, Optional
 
 
+def _root_score(root: Path) -> tuple[int, int]:
+    score = 0
+    db_path = root / "prisma" / "dev.db"
+    if db_path.is_file():
+        score += 100
+        try:
+            score += min(db_path.stat().st_size // 1024, 50)
+        except OSError:
+            pass
+    if (root / "prisma" / "schema.prisma").is_file():
+        score += 10
+    if (root / "package.json").is_file():
+        score += 5
+    if (root / "scripts" / "telegram_channel" / "sync.py").is_file():
+        score += 20
+    if ".next" in root.parts:
+        score -= 100
+    return score, -len(root.parts)
+
+
+def resolve_project_root(script_file: Path | None = None) -> Path:
+    env_root = os.getenv("PROJECT_ROOT", "").strip()
+    if env_root:
+        root = Path(env_root).resolve()
+        if (root / "prisma").is_dir():
+            return root
+
+    seeds: list[Path] = []
+    if script_file is not None:
+        seeds.extend(script_file.resolve().parents)
+    seeds.append(Path.cwd())
+    seeds.extend(Path.cwd().parents)
+
+    matches: list[Path] = []
+    seen: set[Path] = set()
+    for candidate in seeds:
+        root = candidate.resolve()
+        if root in seen:
+            continue
+        seen.add(root)
+        if (root / "prisma" / "schema.prisma").is_file():
+            matches.append(root)
+            continue
+        if (root / "prisma" / "dev.db").is_file():
+            matches.append(root)
+            continue
+        if (root / "package.json").is_file() and (root / "prisma").is_dir():
+            matches.append(root)
+
+    if matches:
+        return max(matches, key=_root_score)
+
+    if script_file is not None:
+        resolved = script_file.resolve()
+        if len(resolved.parents) > 2:
+            return resolved.parents[2]
+        return resolved.parents[1]
+    return Path.cwd()
+
+
 def resolve_db_path(root: Path, database_url: str) -> Path:
     url = database_url.strip().strip('"').strip("'")
+    candidates: list[Path] = []
+
     if url.startswith("file:"):
         rel = url[5:]
         if rel.startswith("./"):
-            return (root / "prisma" / rel[2:]).resolve()
-        return Path(rel).resolve()
-    return (root / "prisma" / "dev.db").resolve()
+            rel = rel[2:]
+
+        path_obj = Path(rel)
+        if path_obj.is_absolute():
+            candidates.append(path_obj)
+        else:
+            if rel.startswith("prisma/") or rel.startswith("prisma\\"):
+                candidates.append((root / rel).resolve())
+            candidates.append((root / "prisma" / Path(rel).name).resolve())
+            candidates.append((root / rel).resolve())
+    else:
+        candidates.append((root / "prisma" / "dev.db").resolve())
+
+    candidates.append((root / "prisma" / "dev.db").resolve())
+
+    checked: set[Path] = set()
+    for candidate in candidates:
+        if candidate in checked:
+            continue
+        checked.add(candidate)
+        if candidate.exists():
+            return candidate
+
+    best = candidates[0]
+    if not best.parent.exists():
+        raise FileNotFoundError(
+            "unable to open database file: "
+            f"directory {best.parent} does not exist "
+            f"(PROJECT_ROOT={root}, DATABASE_URL={database_url})"
+        )
+    raise FileNotFoundError(
+        "unable to open database file: "
+        f"{best} not found (PROJECT_ROOT={root}, DATABASE_URL={database_url})"
+    )
 
 
 def generate_uid(external_id: str) -> str:
