@@ -22,7 +22,6 @@ export const metadata: Metadata = {
   },
   description: BRAND_TAGLINE,
   metadataBase: new URL(BRAND_URL),
-  themeColor: "#FF8800",
   openGraph: {
     title: BRAND_NAME,
     description: BRAND_TAGLINE,
@@ -34,6 +33,10 @@ export const metadata: Metadata = {
     icon: "/logo.svg",
     apple: "/logo.svg",
   },
+};
+
+export const viewport = {
+  themeColor: "#FF8800",
 };
 
 export default function RootLayout({

@@ -1,4 +1,4 @@
-import { PrismaClient } from "../lib/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const globalForPrisma = globalThis as any;

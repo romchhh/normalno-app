@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
 import dotenv from "dotenv";
-import { PrismaClient } from "../lib/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { CATALOG_CATEGORIES, categoriesToJsonRecord } from "../lib/categories";
 
 dotenv.config();

@@ -12,7 +12,11 @@ const nextConfig: NextConfig = {
     ],
     localPatterns: [{ pathname: "/**" }],
   },
-  serverExternalPackages: ["node-telegram-bot-api"],
+  serverExternalPackages: ["@prisma/client", "node-telegram-bot-api"],
+  outputFileTracingIncludes: {
+    "/*": ["./node_modules/.prisma/client/**/*"],
+    "/api/**/*": ["./node_modules/.prisma/client/**/*"],
+  },
   experimental: {
     optimizePackageImports: ["swiper"],
   },

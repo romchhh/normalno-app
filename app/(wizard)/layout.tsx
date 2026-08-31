@@ -14,6 +14,9 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   title: `Підбір авто · ${BRAND_NAME}`,
+};
+
+export const viewport = {
   themeColor: "#FF8800",
 };
 

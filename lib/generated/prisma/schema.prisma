@@ -1,0 +1,154 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Car {
+  id            Int     @id @default(autoincrement())
+  uid           String  @unique
+  brand         String
+  sku           String  @default("")
+  mark          String
+  category      String  @default("")
+  title         String
+  description   String  @default("")
+  text          String  @default("")
+  photo         String?
+  video         String?
+  price         Float   @default(0)
+  quantity      Int     @default(1)
+  priceOld      Float?
+  editions      String?
+  modifications String?
+  externalId    String?
+  parentUid     String?
+  status        String? @default("available")
+  bodyType      String?
+
+  engineType      String @default("")
+  engineVolume    Float  @default(0)
+  transmission    String @default("")
+  driveType       String @default("")
+  year            Int    @default(0)
+  enginePower     Float  @default(0)
+  priceUSD        String @default("0")
+  monthlyPayment  Float?
+  advancePayment  Float?
+  countryOfOrigin String @default("")
+  mileage         Int    @default(0)
+  weight          Float  @default(0)
+  length          Float  @default(0)
+  width           Float  @default(0)
+  height          Float  @default(0)
+
+  partnerId Int?
+  partner   Partner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Partner {
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
+  name        String   @default("")
+  photo       String?
+  description String   @default("")
+  active      Boolean  @default(true)
+  cars        Car[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model User {
+  id           Int     @id @default(autoincrement())
+  telegramId   String  @unique
+  username     String?
+  firstName    String
+  lastName     String?
+  languageCode String
+  chatId       String?
+  isBot        Boolean
+  phone        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  catalogVisits CatalogVisit[]
+  wizardSession WizardSession?
+}
+
+model WizardSession {
+  id                Int     @id @default(autoincrement())
+  telegramId        String  @unique
+  userId            Int?    @unique
+  phone             String?
+  startOption       String?
+  currentCarBrand   String?
+  currentCarModel   String?
+  currentCarYear    Int?
+  currentCarMileage Int?
+  currentCarPrice   Float   @default(0)
+  additionalCash    Float   @default(0)
+  monthlyPayment    Float   @default(550)
+  termMonths        Int     @default(36)
+  motivations       String  @default("[]")
+  bodyTypes         String  @default("[]")
+  brandPrefs        String  @default("[]")
+  maxBudget         Float?
+  totalStartBudget  Float?
+  selectedCarId     Int?
+  selectedCarLabel  String?
+  currentStep       String  @default("hero")
+  bitrixStatus      String?
+  bitrixError       String?
+  funnelSteps       String  @default("[]")
+  calculationsCount Int     @default(0)
+
+  user User? @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CatalogVisit {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  phone     String?
+  username  String?
+  firstName String?
+  lastName  String?
+  userAgent String?
+  ipAddress String?
+  visitedAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Lead {
+  id               Int      @id @default(autoincrement())
+  name             String
+  phone            String
+  message          String?
+  source           String // contact | order | wizard | modal | section
+  status           String   @default("new") // new | in_progress | done | spam
+  carId            Int?
+  carLabel         String?
+  telegramId       String?
+  telegramUsername String?
+  bitrixLeadId     Int?
+  bitrixStatus     String?
+  meta             String? // JSON extras
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}

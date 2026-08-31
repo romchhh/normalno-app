@@ -14,20 +14,20 @@ export type TelegramSyncResult = {
   message?: string;
 };
 
+const SYNC_DIR = path.join(process.cwd(), "scripts", "telegram_channel");
+const SYNC_SCRIPT = path.join(SYNC_DIR, "sync.py");
+
 export function isTelegramChannelSyncConfigured(): boolean {
   return Boolean(process.env.TELEGRAM_API_ID && process.env.TELEGRAM_API_HASH);
 }
 
 export function runTelegramChannelSync(limit = 200): Promise<TelegramSyncResult> {
   return new Promise((resolve, reject) => {
-    const scriptPath = path.join(process.cwd(), "scripts/telegram_channel/sync.py");
-    const pythonBin = process.env.TELEGRAM_PYTHON_BIN || "python3";
-
     const child = spawn(
-      pythonBin,
-      [scriptPath, "--limit", String(limit), "--json"],
+      "python3",
+      [SYNC_SCRIPT, "--limit", String(limit), "--json"],
       {
-        cwd: process.cwd(),
+        cwd: SYNC_DIR,
         env: process.env,
       }
     );
