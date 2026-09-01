@@ -5,6 +5,7 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 import { formatPrice } from "@/lib/price-format";
 import { formatUahMoney } from "@/lib/car-form";
+import { resolveCarPhotoUrl } from "@/lib/car-photo";
 import FavoriteToggle from "./FavoriteToggle";
 
 export type CarCardData = {
@@ -52,12 +53,15 @@ function CarCardBody({
   ]
     .filter(Boolean)
     .join(" · ");
+  const photoSrc = car.photo?.split(/\s+/)[0]
+    ? resolveCarPhotoUrl(car.photo.split(/\s+/)[0]!)
+    : "/logo.svg";
 
   return (
     <>
       <div className="relative w-full aspect-[4/3] bg-surface overflow-hidden">
         <Image
-          src={car.photo?.split(/\s+/)[0] || "/hero-auto.jpg"}
+          src={photoSrc}
           alt={String(car.title)}
           fill
           className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"

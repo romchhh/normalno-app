@@ -254,7 +254,7 @@ async def download_group_photos(
             continue
         filename = f"tg_{group_key}_{message.id}_{index}.jpg"
         target = upload_dir / filename
-        web_path = f"/uploads/cars/{filename}"
+        web_path = f"/api/cars/image/{filename}"
         if not target.exists():
             await client.download_media(message, file=str(target))
         if target.exists():

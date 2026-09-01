@@ -8,6 +8,7 @@ import {
   type TelegramImportMeta,
 } from "@/lib/telegram-car-import";
 import type { CarFormValues } from "@/lib/car-form";
+import { resolveCarPhotoUrl } from "@/lib/car-photo";
 import type { TelegramPostPreview } from "@/lib/telegram-post-import";
 
 type Props = {
@@ -164,7 +165,7 @@ export default function TelegramPostImporter({ onImported }: Props) {
                       className="aspect-square rounded-xl overflow-hidden border border-border bg-surface"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={photo} alt="" className="w-full h-full object-cover" />
+                      <img src={resolveCarPhotoUrl(photo)} alt="" className="w-full h-full object-cover" />
                     </div>
                   ))}
                 </div>

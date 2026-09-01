@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import { resolveCarPhotoUrl } from "@/lib/car-photo";
 
 interface ImageCarouselProps {
   photos: string[];
@@ -66,6 +67,10 @@ export default function ImageCarousel({
 
   if (!photos || photos.length === 0) return null;
 
+  const resolvedPhotos = photos.map((photo) =>
+    photo.trim() ? resolveCarPhotoUrl(photo) : "/logo.svg"
+  );
+
   return (
     <div className="w-full">
       {/* Main Image - Scrollable Container */}
@@ -79,10 +84,10 @@ export default function ImageCarousel({
           className="flex transition-transform duration-300 ease-in-out h-full"
           style={{ transform: `translateX(-${index * 100}%)` }}
         >
-          {photos.map((photo, idx) => (
+          {resolvedPhotos.map((photo, idx) => (
             <div key={idx} className="relative flex-shrink-0 w-full h-full">
       <Image
-                src={photo.trim() || "/placeholder.png"}
+                src={photo}
                 alt={`${title} photo ${idx + 1}`}
         fill
                 className="object-cover"
@@ -169,7 +174,7 @@ export default function ImageCarousel({
       {/* Thumbnail Gallery - Scrollable */}
       {showThumbnails && photos.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory scroll-smooth">
-          {photos.map((photo, idx) => (
+          {resolvedPhotos.map((photo, idx) => (
             <button
               key={idx}
               onClick={() => goToImage(idx)}
@@ -180,7 +185,7 @@ export default function ImageCarousel({
               }`}
             >
               <Image
-                src={photo.trim() || "/placeholder.png"}
+                src={photo}
                 alt={`${title} thumbnail ${idx + 1}`}
                 fill
                 className="object-cover"

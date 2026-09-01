@@ -3,6 +3,7 @@ import { searchCarsByTitle } from "@/lib/prisma-filters";
 import { NextRequest, NextResponse } from "next/server";
 import { generateCarUid, parseMoney } from "@/lib/car-form";
 import { canManageCars, requireAdmin } from "@/lib/admin-auth";
+import { revalidateCarPages } from "@/lib/revalidate-cars";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -95,6 +96,8 @@ export async function POST(request: NextRequest) {
             : null,
       },
     });
+
+    revalidateCarPages(car.id);
 
     return NextResponse.json(car, { status: 201 });
   } catch (error: unknown) {

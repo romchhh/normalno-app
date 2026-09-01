@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { parseMoney } from "@/lib/car-form";
 import { canManageCars, requireAdmin } from "@/lib/admin-auth";
+import { revalidateCarPages } from "@/lib/revalidate-cars";
 
 export async function GET(
   _req: NextRequest,
@@ -68,6 +69,8 @@ export async function PUT(
       },
     });
 
+    revalidateCarPages(updatedCar.id);
+
     return NextResponse.json(updatedCar);
   } catch (err: unknown) {
     console.error("UPDATE car error:", err);
@@ -92,6 +95,7 @@ export async function DELETE(
   try {
     const carId = Number((await params).id);
     await prisma.car.delete({ where: { id: carId } });
+    revalidateCarPages(carId);
     return NextResponse.json({ message: "Машина видалена" });
   } catch (err) {
     console.error("DELETE car error:", err);
@@ -117,6 +121,7 @@ export async function PATCH(
       where: { id: carId },
       data: { status },
     });
+    revalidateCarPages(car.id);
     return NextResponse.json(car);
   } catch (err) {
     console.error("PATCH car error:", err);

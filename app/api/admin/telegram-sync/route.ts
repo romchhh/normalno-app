@@ -6,6 +6,7 @@ import {
   PYTHON_SYNC_SETUP_CMD,
   runTelegramChannelSync,
 } from "@/lib/telegram-channel-sync";
+import { revalidateCarPages } from "@/lib/revalidate-cars";
 
 export async function GET() {
   const auth = await requireAdmin("content_manager");
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    revalidateCarPages();
     return NextResponse.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Internal server error";

@@ -8,6 +8,7 @@ import {
   EMPTY_CAR_FORM,
   parseMoney,
 } from "@/lib/car-form";
+import { resolveCarPhotoUrl } from "@/lib/car-photo";
 import {
   BODY_TYPE_OPTIONS,
   CAR_STATUSES,
@@ -215,7 +216,7 @@ export default function CarForm({ initial, submitLabel, onSubmit }: CarFormProps
                   className="flex items-center gap-2 p-2 rounded-xl border border-border"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt="" className="w-14 h-10 object-cover rounded-lg bg-surface" />
+                  <img src={resolveCarPhotoUrl(url)} alt="" className="w-14 h-10 object-cover rounded-lg bg-surface" />
                   <p className="text-xs text-muted truncate flex-1">{url}</p>
                   <button
                     type="button"
