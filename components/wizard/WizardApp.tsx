@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import WizardShell from "./WizardShell";
 import BrandPicker from "./BrandPicker";
-import { WizardAmountSheet } from "./WizardSheet";
 import CarCard from "@/components/CarCard";
 import { CAR_CARD_GRID } from "@/lib/car-card";
 import {
@@ -25,7 +24,9 @@ import {
 } from "@/lib/wizard/calculator";
 import { WIZARD_BRANDS } from "@/lib/brands";
 
-const CASH_OPTIONS_UAH = [0, 50_000, 100_000, 200_000];
+const ADD_CASH_MIN_UAH = 130_000;
+const ADD_CASH_MAX_UAH = 1_000_000;
+const ADD_CASH_STEP_UAH = 10_000;
 const TERM_OPTIONS = [24, 36, 48];
 
 function haptic(type: "light" | "success" = "light") {
@@ -56,8 +57,6 @@ export default function WizardApp() {
   } | null>(null);
   const [isReturning, setIsReturning] = useState(false);
   const [ready, setReady] = useState(false);
-  const [customCashOpen, setCustomCashOpen] = useState(false);
-
   const update = useCallback((patch: Partial<WizardState>) => {
     setState((prev) => ({ ...prev, ...patch }));
   }, []);
@@ -160,6 +159,19 @@ export default function WizardApp() {
     const t = setTimeout(() => persist(state, state.step), 400);
     return () => clearTimeout(t);
   }, [state, ready, telegramId, persist]);
+
+  useEffect(() => {
+    if (state.step !== "additional-cash") return;
+    const { additionalCash } = state;
+    if (additionalCash < ADD_CASH_MIN_UAH || additionalCash > ADD_CASH_MAX_UAH) {
+      update({
+        additionalCash: Math.min(
+          ADD_CASH_MAX_UAH,
+          Math.max(ADD_CASH_MIN_UAH, additionalCash || ADD_CASH_MIN_UAH)
+        ),
+      });
+    }
+  }, [state.step, state.additionalCash, update]);
 
   const budgetProfile =
     state.budgetProfile ??
@@ -511,6 +523,15 @@ export default function WizardApp() {
 
   // Screen 5: Additional cash
   if (state.step === "additional-cash") {
+    const additionalCashValue =
+      state.additionalCash >= ADD_CASH_MIN_UAH && state.additionalCash <= ADD_CASH_MAX_UAH
+        ? state.additionalCash
+        : ADD_CASH_MIN_UAH;
+    const totalStartOnStep = calcTotalStartBudgetUah(
+      state.currentCarPrice,
+      additionalCashValue
+    );
+
     return (
       <WizardShell
         step={state.step}
@@ -519,56 +540,29 @@ export default function WizardApp() {
       >
         <h2 className="wizard-title mb-3">Плануєте щось додати?</h2>
         <p className="wizard-subtitle mb-8">Додатковий стартовий внесок у гривнях</p>
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          {CASH_OPTIONS_UAH.map((amt) => (
-            <button
-              key={amt}
-              type="button"
-              onClick={() => update({ additionalCash: amt })}
-              className={`wizard-chip ${
-                state.additionalCash === amt ? "wizard-chip-selected" : ""
-              }`}
-            >
-              {amt === 0 ? "0 ₴" : `+${formatUahShort(amt)}`}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => {
-              haptic();
-              setCustomCashOpen(true);
-            }}
-            className={`wizard-chip col-span-2 ${
-              state.additionalCash > 0 && !CASH_OPTIONS_UAH.includes(state.additionalCash)
-                ? "wizard-chip-selected"
-                : ""
-            }`}
-          >
-            {state.additionalCash > 0 && !CASH_OPTIONS_UAH.includes(state.additionalCash)
-              ? `${formatUahShort(state.additionalCash)} — змінити`
-              : "Інша сума"}
-          </button>
+        <div className="wizard-stat-card mb-8 text-center">
+          <p className="text-base text-muted mb-2">Додатковий внесок</p>
+          <p className="wizard-highlight">{formatUah(additionalCashValue)}</p>
         </div>
-        <WizardAmountSheet
-          open={customCashOpen}
-          title="Інша сума"
-          subtitle="Додатковий стартовий внесок у гривнях"
-          initialValue={
-            CASH_OPTIONS_UAH.includes(state.additionalCash) ? 0 : state.additionalCash
-          }
-          quickOptions={[25_000, 75_000, 150_000, 300_000, 500_000]}
-          onConfirm={(value) => {
-            haptic();
-            update({ additionalCash: value });
-          }}
-          onClose={() => setCustomCashOpen(false)}
+        <label className="text-base font-semibold mb-3 block">Оберіть суму</label>
+        <input
+          type="range"
+          min={ADD_CASH_MIN_UAH}
+          max={ADD_CASH_MAX_UAH}
+          step={ADD_CASH_STEP_UAH}
+          value={additionalCashValue}
+          onChange={(e) => update({ additionalCash: parseInt(e.target.value, 10) })}
+          className="wizard-slider"
         />
+        <div className="flex justify-between text-sm text-muted mt-2 mb-8">
+          <span>{formatUahShort(ADD_CASH_MIN_UAH)}</span>
+          <span>{formatUahShort(ADD_CASH_MAX_UAH)}</span>
+        </div>
         <div className="wizard-stat-card wizard-stat-card-accent">
           <p className="text-base text-muted mb-1">Гроші на старті</p>
-          <p className="wizard-highlight text-3xl">{formatUah(totalStartUah)}</p>
+          <p className="wizard-highlight text-3xl">{formatUah(totalStartOnStep)}</p>
           <p className="text-sm text-muted mt-2">
-            Авто {formatUsd(state.currentCarPrice)}
-            {state.additionalCash > 0 ? ` + ${formatUahShort(state.additionalCash)}` : ""}
+            Авто {formatUsd(state.currentCarPrice)} + {formatUahShort(additionalCashValue)}
           </p>
         </div>
       </WizardShell>
