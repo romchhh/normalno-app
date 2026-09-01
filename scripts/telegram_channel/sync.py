@@ -7,6 +7,7 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import sys
 from collections import OrderedDict
 from pathlib import Path
@@ -112,8 +113,106 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--login", action="store_true", help="Authorize Telegram user session")
     parser.add_argument("--limit", type=int, default=int(os.getenv("TELEGRAM_SYNC_LIMIT", "400")))
     parser.add_argument("--channel", type=int, default=int(os.getenv("TELEGRAM_CHANNEL_ID", str(DEFAULT_CHANNEL_ID))))
+    parser.add_argument("--url", type=str, help="Import a single Telegram post by public URL")
     parser.add_argument("--json", action="store_true", help="Print result as JSON")
     return parser.parse_args()
+
+
+def parse_telegram_url(url: str) -> tuple[str | int, int]:
+    cleaned = url.strip()
+    private_match = re.match(r"https?://(?:www\.)?t\.me/c/(\d+)/(\d+)", cleaned, re.IGNORECASE)
+    if private_match:
+        raw_id = private_match.group(1)
+        channel_id = int(f"-100{raw_id}") if not raw_id.startswith("100") else int(f"-{raw_id}")
+        return channel_id, int(private_match.group(2))
+
+    public_match = re.match(r"https?://(?:www\.)?t\.me/([^/?#]+)/(\d+)", cleaned, re.IGNORECASE)
+    if public_match:
+        username = public_match.group(1)
+        if username.lower() == "c":
+            raise ValueError("Невірне посилання Telegram")
+        return username, int(public_match.group(2))
+
+    raise ValueError(
+        "Невірне посилання. Підтримуються формати: "
+        "https://t.me/channel/123 або https://t.me/c/1949651952/123"
+    )
+
+
+async def fetch_message_group(
+    client: TelegramClient,
+    entity,
+    message_id: int,
+) -> list[Message]:
+    message = await client.get_messages(entity, ids=message_id)
+    if isinstance(message, list):
+        message = message[0] if message else None
+    if not message:
+        raise RuntimeError("Пост не знайдено або немає доступу до каналу")
+
+    grouped_id = message.grouped_id
+    if not grouped_id:
+        return [message]
+
+    window = await client.get_messages(
+        entity,
+        limit=50,
+        max_id=message.id + 30,
+        min_id=max(1, message.id - 30),
+    )
+    album = [item for item in window if item.grouped_id == grouped_id]
+    album.sort(key=lambda item: item.id)
+    return album if album else [message]
+
+
+async def import_post_from_url(url: str) -> dict:
+    channel_ref, message_id = parse_telegram_url(url)
+    root = resolve_project_root(SCRIPT_DIR / "sync.py")
+    paths = project_paths(root)
+
+    api_id = os.getenv("TELEGRAM_API_ID")
+    api_hash = os.getenv("TELEGRAM_API_HASH")
+    if not api_id or not api_hash:
+        raise RuntimeError("Додайте TELEGRAM_API_ID та TELEGRAM_API_HASH у .env")
+
+    session_path = resolve_session_path(root)
+    client = TelegramClient(session_path, int(api_id), api_hash)
+    await client.start()
+
+    try:
+        entity = channel_ref if isinstance(channel_ref, int) else await client.get_entity(channel_ref)
+        messages = await fetch_message_group(client, entity, message_id)
+        text = get_group_text(messages)
+        if not text or not is_car_post(text):
+            raise RuntimeError("Цей пост не схожий на оголошення про авто")
+
+        parsed = parse_car_post(text)
+        if not parsed:
+            raise RuntimeError("Не вдалося розпарсити дані авто з поста")
+
+        group_key = messages[0].grouped_id or f"single_{messages[0].id}"
+        channel_id = getattr(entity, "id", channel_ref)
+        photos = ""
+        if group_has_photos(messages):
+            photos = await download_group_photos(client, messages, group_key, paths["upload_dir"])
+
+        photo_list = [part for part in photos.split() if part.strip()]
+        external_id = f"tg:{channel_id}:{group_key}"
+
+        return {
+            "ok": True,
+            "parsed": parsed.to_dict(),
+            "photos": photo_list,
+            "photo": photos.strip() or None,
+            "externalId": external_id,
+            "sourceUrl": url,
+            "rawText": text,
+            "photoCount": len(photo_list),
+            "messageId": message_id,
+            "channelId": channel_id,
+        }
+    finally:
+        await client.disconnect()
 
 
 def get_message_text(message: Message) -> str:
@@ -272,6 +371,11 @@ async def sync_channel(args: argparse.Namespace) -> dict:
 def main() -> int:
     args = parse_args()
     try:
+        if args.url:
+            result = asyncio.run(import_post_from_url(args.url.strip()))
+            print(json.dumps(result, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+
         result = asyncio.run(sync_channel(args))
         if args.json or not args.login:
             print(json.dumps(result, ensure_ascii=False))

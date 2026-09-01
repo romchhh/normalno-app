@@ -39,6 +39,23 @@ export async function POST(request: NextRequest) {
     const monthlyPayment = parseMoney(data.monthlyPayment);
     const advancePayment = parseMoney(data.advancePayment);
     const description = String(data.description || data.text || "");
+    const externalId = data.externalId?.trim() ? String(data.externalId).trim() : null;
+
+    if (externalId) {
+      const duplicate = await prisma.car.findFirst({
+        where: { externalId },
+        select: { id: true, title: true },
+      });
+      if (duplicate) {
+        return NextResponse.json(
+          {
+            message: `Авто з цього поста вже існує: ${duplicate.title}`,
+            duplicateCarId: duplicate.id,
+          },
+          { status: 409 }
+        );
+      }
+    }
 
     const car = await prisma.car.create({
       data: {
@@ -71,6 +88,7 @@ export async function POST(request: NextRequest) {
         width: parseFloat(data.width) || 0,
         height: parseFloat(data.height) || 0,
         status: data.status || "available",
+        externalId,
         partnerId:
           data.partnerId != null && data.partnerId !== ""
             ? Number(data.partnerId) || null

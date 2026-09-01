@@ -115,7 +115,7 @@ export function getTelegramSyncPythonBin(paths = resolveTelegramSyncPaths()): st
   return "python3";
 }
 
-function formatSyncError(stderr: string, stdout: string, paths: TelegramSyncPaths): string {
+export function formatSyncError(stderr: string, stdout: string, paths: TelegramSyncPaths): string {
   const output = `${stderr}\n${stdout}`.trim();
   if (/ModuleNotFoundError|No module named/i.test(output)) {
     if (!isExecutable(paths.venvPython)) {
