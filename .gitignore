@@ -42,6 +42,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# stale prisma output (use @prisma/client from node_modules)
+/lib/generated/prisma/
+
 /lib/db.js
 /dist/db.js
 

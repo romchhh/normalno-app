@@ -82,7 +82,7 @@ export function resolveTelegramSyncPaths(): TelegramSyncPaths {
   const matches: TelegramSyncPaths[] = [];
 
   for (const candidate of candidates) {
-    const projectRoot = path.resolve(candidate);
+    const projectRoot = path.resolve(/* turbopackIgnore: true */ candidate);
     const syncDir = path.join(projectRoot, "scripts", "telegram_channel");
     if (!isSyncDir(syncDir)) continue;
 
@@ -145,7 +145,9 @@ export function checkPythonSyncDependencies(): Promise<boolean> {
   const pythonBin = getTelegramSyncPythonBin(paths);
 
   return new Promise((resolve) => {
-    const child = spawn(pythonBin, ["-c", "import telethon"], { cwd: paths.syncDir });
+    const child = spawn(/* turbopackIgnore: true */ pythonBin, ["-c", "import telethon"], {
+      cwd: paths.syncDir,
+    });
     child.on("close", (code) => resolve(code === 0));
     child.on("error", () => resolve(false));
   });
@@ -161,7 +163,7 @@ export function runTelegramChannelSync(limit = 400): Promise<TelegramSyncResult>
 
   return new Promise((resolve, reject) => {
     const child = spawn(
-      pythonBin,
+      /* turbopackIgnore: true */ pythonBin,
       [paths.syncScript, "--limit", String(limit), "--json"],
       {
         cwd: paths.syncDir,
