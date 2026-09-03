@@ -6,10 +6,13 @@ import { useRouter } from "next/navigation";
 export default function SettingsPage() {
   const router = useRouter();
   const [telegramChatId, setTelegramChatId] = useState("");
+  const [telegramPublishChannelId, setTelegramPublishChannelId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [channelInfo, setChannelInfo] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -23,6 +26,7 @@ export default function SettingsPage() {
         if (res.ok) {
           const data = await res.json();
           setTelegramChatId(data.telegramChatId || "");
+          setTelegramPublishChannelId(data.telegramPublishChannelId || "");
         }
       } catch {
         setError("Помилка завантаження налаштувань");
@@ -33,19 +37,61 @@ export default function SettingsPage() {
     load();
   }, [router]);
 
+  const handleCheckChannel = async () => {
+    setError("");
+    setSuccess("");
+    setChannelInfo("");
+    setChecking(true);
+    try {
+      const res = await fetch("/api/admin/telegram-channel/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channelId: telegramPublishChannelId }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        const label = [data.title, data.username ? `@${data.username}` : null, data.channelId]
+          .filter(Boolean)
+          .join(" · ");
+        setChannelInfo(`Права ОК: ${label}`);
+        setTelegramPublishChannelId(String(data.channelId || telegramPublishChannelId));
+        setSuccess("Бот має права публікувати в цьому каналі");
+      } else {
+        setError(data.error || "Немає прав у каналі");
+      }
+    } catch {
+      setError("Помилка перевірки каналу");
+    } finally {
+      setChecking(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
+    setChannelInfo("");
     setSaving(true);
     try {
       const res = await fetch("/api/admin/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ telegramChatId }),
+        body: JSON.stringify({ telegramChatId, telegramPublishChannelId }),
       });
       const data = await res.json();
       if (res.ok) {
+        if (data.settings?.telegramPublishChannelId) {
+          setTelegramPublishChannelId(data.settings.telegramPublishChannelId);
+        }
+        if (data.channelCheck?.ok) {
+          const label = [
+            data.channelCheck.title,
+            data.channelCheck.username ? `@${data.channelCheck.username}` : null,
+          ]
+            .filter(Boolean)
+            .join(" · ");
+          setChannelInfo(label ? `Канал: ${label}` : "");
+        }
         setSuccess("Збережено");
         setTimeout(() => setSuccess(""), 2500);
       } else {
@@ -70,7 +116,7 @@ export default function SettingsPage() {
     <div className="max-w-xl space-y-4">
       <div>
         <h2 className="text-2xl font-extrabold tracking-tight">Telegram / Система</h2>
-        <p className="text-sm text-muted mt-1">Куди слати заявки з сайту</p>
+        <p className="text-sm text-muted mt-1">Заявки, канал публікації та бот</p>
       </div>
 
       <form onSubmit={handleSubmit} className="admin-card space-y-4">
@@ -84,9 +130,14 @@ export default function SettingsPage() {
             {success}
           </div>
         )}
+        {channelInfo && (
+          <div className="bg-blue-50 text-blue-800 border border-blue-200 rounded-xl px-4 py-3 text-sm">
+            {channelInfo}
+          </div>
+        )}
 
         <div>
-          <label className="block text-sm font-semibold mb-2">Telegram Chat ID</label>
+          <label className="block text-sm font-semibold mb-2">Chat ID для заявок</label>
           <input
             className="admin-input"
             value={telegramChatId}
@@ -95,6 +146,30 @@ export default function SettingsPage() {
           />
           <p className="text-xs text-muted mt-2">
             ID чату/групи, куди бот надсилає заявки з форм сайту
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-semibold mb-2">Канал для публікації авто</label>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              className="admin-input flex-1"
+              value={telegramPublishChannelId}
+              onChange={(e) => setTelegramPublishChannelId(e.target.value)}
+              placeholder="-100xxxxxxxxxx або @channel"
+            />
+            <button
+              type="button"
+              onClick={handleCheckChannel}
+              disabled={checking || !telegramPublishChannelId.trim()}
+              className="admin-btn admin-btn-secondary"
+            >
+              {checking ? "Перевірка..." : "Перевірити права"}
+            </button>
+          </div>
+          <p className="text-xs text-muted mt-2">
+            Додайте бота адміном каналу з правом публікувати повідомлення. При збереженні права
+            перевіряються автоматично.
           </p>
         </div>
 

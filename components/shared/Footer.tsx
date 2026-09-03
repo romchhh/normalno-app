@@ -98,7 +98,7 @@ export default function Footer() {
               />
             </Link>
             <p className="text-sm text-muted leading-relaxed max-w-xs">
-              Підбір, доставка та оформлення авто з США. Прозоро, без зайвого.
+              Авто в лізинг під ваш бюджет. Прозоро, без зайвого.
             </p>
             <div className="flex gap-3">
               <SocialIcon href={SOCIAL_LINKS.telegram} label="Telegram">

@@ -226,7 +226,7 @@ function buildCarData(car: SeedCar) {
     priceUSD: car.priceUSD,
     monthlyPayment: Math.round(price * 37.5 * 0.0314),
     advancePayment: Math.round(price * 37.5 * 0.4),
-    countryOfOrigin: "США",
+    countryOfOrigin: "",
     mileage: car.mileage,
     weight: 1500,
     length: 4.8,

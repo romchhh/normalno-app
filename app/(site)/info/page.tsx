@@ -12,9 +12,9 @@ export default function InfoPage() {
           <section>
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Про компанію</h2>
             <p className="text-gray-700 leading-relaxed">
-              {BRAND_NAME} — сервіс з підбору та доставки автомобілів з США. 
-              {BRAND_TAGLINE}. Ми допомагаємо клієнтам знайти авто за прозорою ціною 
-              та супроводжуємо на кожному етапі — від аукціону до реєстрації в Україні.
+              {BRAND_NAME} — лізингова компанія. {BRAND_TAGLINE}. Ми допомагаємо
+              клієнтам обрати авто під бюджет і комфортний щомісячний платіж
+              та супроводжуємо на кожному етапі — від підбору до оформлення.
             </p>
           </section>
 
@@ -23,15 +23,15 @@ export default function InfoPage() {
             <ul className="space-y-3 text-gray-700">
               <li className="flex items-start gap-3">
                 <span className="text-2xl">🏁</span>
-                <span>Тільки вигідні авто з перевіреною історією</span>
+                <span>Перевірені авто з прозорою історією</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="text-2xl">💰</span>
-                <span>Авто за ціною нижче ринку</span>
+                <span>Зрозумілі умови лізингу без прихованих платежів</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="text-2xl">⭐</span>
-                <span>Більше 8000 відгуків від задоволених клієнтів</span>
+                <span>Підбір під ваш бюджет і щомісячний платіж</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="text-2xl">🚗</span>
@@ -63,4 +63,3 @@ export default function InfoPage() {
     </div>
   );
 }
-

@@ -28,7 +28,7 @@ export const CATALOG_CATEGORIES: CatalogCategory[] = [
     slug: "e-cars",
     name: "Електромобілі",
     image: "/autos/e-cars.webp",
-    description: "Електрокари та гібриди з США",
+    description: "Електрокари та гібриди в лізинг",
     priority: 3,
     dbValues: ["Електромобілі"],
   },

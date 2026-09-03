@@ -2,54 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { BRAND_URL } from "@/lib/brand";
 import { isBitrixConfigured, sendLeadToBitrix } from "@/lib/bitrix";
 import { createLead } from "@/lib/leads";
-import { readFile } from "fs/promises";
-import { existsSync } from "fs";
-import path from "path";
+import { readAppSettings } from "@/lib/app-settings";
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const SETTINGS_FILE = path.join(process.cwd(), "data", "settings.json");
 
-// Get Telegram Chat ID from settings or env
 async function getTelegramChatId(): Promise<string | null> {
   try {
-    // Try to read from settings file first
-    if (existsSync(SETTINGS_FILE)) {
-      console.log("[getTelegramChatId] Reading from settings file:", SETTINGS_FILE);
-      const fileContent = await readFile(SETTINGS_FILE, "utf-8");
-      const settings = JSON.parse(fileContent);
-      console.log("[getTelegramChatId] Settings from file:", settings);
-      
-      if (settings.telegramChatId && settings.telegramChatId.trim() !== "") {
-        console.log("[getTelegramChatId] Using Chat ID from settings:", settings.telegramChatId);
-        return settings.telegramChatId.trim();
-      } else {
-        console.log("[getTelegramChatId] Chat ID not found in settings file or is empty");
-      }
-    } else {
-      console.log("[getTelegramChatId] Settings file does not exist:", SETTINGS_FILE);
-    }
-    
-    // Fallback to env variable
-    const envChatId = process.env.TELEGRAM_CHAT_ID;
-    if (envChatId) {
-      console.log("[getTelegramChatId] Using Chat ID from env variable");
-      return envChatId;
-    }
-    
-    console.log("[getTelegramChatId] Chat ID not found in settings or env");
-    return null;
-  } catch (error: unknown) {
-    console.error("[getTelegramChatId] Error reading settings:", error);
-    if (error instanceof Error) {
-      console.error("[getTelegramChatId] Error stack:", error.stack);
-    }
-    // Fallback to env variable
-    const envChatId = process.env.TELEGRAM_CHAT_ID;
-    if (envChatId) {
-      console.log("[getTelegramChatId] Using Chat ID from env variable (fallback)");
-      return envChatId;
-    }
-    return null;
+    const settings = await readAppSettings();
+    if (settings.telegramChatId) return settings.telegramChatId;
+    return process.env.TELEGRAM_CHAT_ID?.trim() || null;
+  } catch (error) {
+    console.error("[getTelegramChatId] Error:", error);
+    return process.env.TELEGRAM_CHAT_ID?.trim() || null;
   }
 }
 

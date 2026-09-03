@@ -5,11 +5,12 @@ import CarCard from "@/components/CarCard";
 import { CAR_CARD_GRID } from "@/lib/car-card";
 import { CAR_STATUSES, statusLabel } from "@/lib/car-status";
 import { prisma } from "@/lib/db";
+import { findCarIdsByAdminQuery } from "@/lib/prisma-filters";
 import Link from "next/link";
 
 export const revalidate = 0;
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 24;
 
 interface PageProps {
   searchParams: Promise<{
@@ -38,13 +39,14 @@ export default async function CarsPage({ searchParams }: PageProps) {
   const skip = (page - 1) * PAGE_SIZE;
 
   const where: Record<string, unknown> = {};
+
   if (q) {
-    where.OR = [
-      { title: { contains: q } },
-      { brand: { contains: q } },
-      { mark: { contains: q } },
-      { sku: { contains: q } },
-    ];
+    const ids = await findCarIdsByAdminQuery(q);
+    if (ids.length === 0) {
+      where.id = { in: [-1] };
+    } else {
+      where.id = { in: ids };
+    }
   }
   if (category) where.category = category;
   if (status) where.status = status;
@@ -71,6 +73,10 @@ export default async function CarsPage({ searchParams }: PageProps) {
   ]);
 
   const totalPages = Math.ceil(totalCars / PAGE_SIZE) || 1;
+  const from = totalCars === 0 ? 0 : skip + 1;
+  const to = Math.min(skip + cars.length, totalCars);
+  const hasFilters = Boolean(q || category || status || partnerId);
+
   const qs = (nextPage: number) => {
     const p = new URLSearchParams();
     p.set("page", String(nextPage));
@@ -81,31 +87,50 @@ export default async function CarsPage({ searchParams }: PageProps) {
     return `/admin/cars?${p.toString()}`;
   };
 
+  const categoryOptions = categories
+    .map((c) => c.category)
+    .filter((value) => Boolean(value?.trim()));
+
   return (
     <div className="space-y-4 max-w-6xl">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
           <h2 className="text-2xl font-extrabold tracking-tight">База авто</h2>
-          <p className="text-sm text-muted mt-1">Знайдено {totalCars}</p>
+          <p className="text-sm text-muted mt-1">
+            {totalCars === 0
+              ? "Нічого не знайдено"
+              : `Показано ${from}–${to} з ${totalCars}`}
+          </p>
         </div>
         <Link href="/admin/cars/add" className="admin-btn admin-btn-primary">
           + Додати авто
         </Link>
       </div>
 
-      <form className="admin-card space-y-3">
+      <form method="get" className="admin-card space-y-3">
         <div className="flex flex-col sm:flex-row gap-2">
           <input
             name="q"
             defaultValue={q}
             className="admin-input flex-1"
-            placeholder="Пошук: назва, марка, модель, SKU"
+            placeholder="Пошук: назва, марка, модель, рік, SKU…"
+            autoComplete="off"
           />
+          <button type="submit" className="admin-btn admin-btn-primary sm:w-auto">
+            Знайти
+          </button>
+          {hasFilters && (
+            <Link href="/admin/cars" className="admin-btn admin-btn-secondary text-center">
+              Скинути
+            </Link>
+          )}
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
           <select name="category" defaultValue={category} className="admin-input sm:w-48">
             <option value="">Усі категорії</option>
-            {categories.map((c) => (
-              <option key={c.category} value={c.category}>
-                {c.category}
+            {categoryOptions.map((value) => (
+              <option key={value} value={value}>
+                {value}
               </option>
             ))}
           </select>
@@ -125,7 +150,7 @@ export default async function CarsPage({ searchParams }: PageProps) {
               </option>
             ))}
           </select>
-          <button type="submit" className="admin-btn admin-btn-primary">
+          <button type="submit" className="admin-btn admin-btn-secondary">
             Фільтр
           </button>
         </div>
@@ -165,6 +190,9 @@ export default async function CarsPage({ searchParams }: PageProps) {
                     <span className={`admin-badge ${statusBadgeClass(car.status)}`}>
                       {statusLabel(car.status)}
                     </span>
+                    {car.telegramPublished && (
+                      <span className="admin-badge admin-badge-done">В каналі</span>
+                    )}
                     {car.partner && (
                       <span className="admin-badge admin-badge-new">
                         {car.partner.name || "Партнер"}
@@ -189,7 +217,7 @@ export default async function CarsPage({ searchParams }: PageProps) {
       )}
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           {page > 1 ? (
             <Link href={qs(page - 1)} className="admin-btn admin-btn-secondary">
               ← Назад
@@ -198,7 +226,7 @@ export default async function CarsPage({ searchParams }: PageProps) {
             <span className="admin-btn admin-btn-secondary opacity-40">← Назад</span>
           )}
           <span className="text-sm text-muted">
-            {page} / {totalPages}
+            Сторінка {page} з {totalPages}
           </span>
           {page < totalPages ? (
             <Link href={qs(page + 1)} className="admin-btn admin-btn-secondary">

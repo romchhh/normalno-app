@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import CarForm from "@/components/admin/CarForm";
+import PublishCarButton from "@/components/admin/PublishCarButton";
 import {
   carToFormValues,
   formValuesToPayload,
@@ -85,8 +86,22 @@ export default function EditCarPage() {
     <div className="space-y-4">
       <div>
         <h2 className="text-2xl font-extrabold tracking-tight">Редагувати авто</h2>
-        <p className="text-sm text-muted mt-1">#{id}</p>
+        <p className="text-sm text-muted mt-1">
+          #{id}
+          {car.telegramPublished ? " · опубліковано в канал" : ""}
+        </p>
       </div>
+      <PublishCarButton
+        carId={Number(id)}
+        published={Boolean(car.telegramPublished)}
+        publishedAt={
+          typeof car.telegramPublishedAt === "string"
+            ? car.telegramPublishedAt
+            : car.telegramPublishedAt
+              ? String(car.telegramPublishedAt)
+              : null
+        }
+      />
       <CarForm initial={initial} submitLabel="Зберегти зміни" onSubmit={handleSubmit} />
     </div>
   );

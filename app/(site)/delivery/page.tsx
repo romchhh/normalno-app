@@ -11,44 +11,33 @@ export default function DeliveryPage() {
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Варіанти доставки</h2>
             <div className="space-y-6">
               <div className="p-6 bg-gray-50 rounded-2xl border-l-4 border-brand">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">🚢 Доставка з США</h3>
-                <p className="text-gray-700 mb-3">
-                  Автомобілі доставляються з США морським транспортом до портів України. 
-                  Термін доставки залежить від обраного автомобіля та порту відправлення.
-                </p>
-                <p className="text-sm text-gray-600">
-                  Середній термін: 30-60 днів
-                </p>
-              </div>
-
-              <div className="p-6 bg-gray-50 rounded-2xl border-l-4 border-brand">
                 <h3 className="text-xl font-bold text-gray-900 mb-2">🚛 Доставка по Україні</h3>
                 <p className="text-gray-700 mb-3">
-                  Доставка автомобіля до вашого міста або найближчого відділення. 
-                  Вартість та терміни доставки розраховуються індивідуально.
+                  Доставка автомобіля до вашого міста або найближчого відділення.
+                  Вартість та терміни розраховуються індивідуально.
                 </p>
               </div>
 
               <div className="p-6 bg-gray-50 rounded-2xl border-l-4 border-brand">
                 <h3 className="text-xl font-bold text-gray-900 mb-2">📍 Самовивіз</h3>
                 <p className="text-gray-700">
-                  Можливість забрати автомобіль самостійно з нашого офісу в Одесі 
-                  (Фонтанська дор. 6а) після повної оплати та оформлення документів.
+                  Можливість забрати автомобіль самостійно після оформлення
+                  документів і узгодження з менеджером.
                 </p>
               </div>
             </div>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Етапи доставки</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Етапи отримання</h2>
             <div className="space-y-4">
               <div className="flex gap-4">
                 <div className="flex-shrink-0 w-10 h-10 bg-brand text-white rounded-full flex items-center justify-center font-bold">
                   1
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900 mb-1">Оформлення замовлення</h3>
-                  <p className="text-gray-700">Ви обираєте автомобіль та оформлюєте замовлення</p>
+                  <h3 className="font-bold text-gray-900 mb-1">Оформлення</h3>
+                  <p className="text-gray-700">Обираєте авто та узгоджуєте умови лізингу</p>
                 </div>
               </div>
               <div className="flex gap-4">
@@ -56,8 +45,8 @@ export default function DeliveryPage() {
                   2
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900 mb-1">Оплата</h3>
-                  <p className="text-gray-700">Здійснюється передоплата згідно з умовами</p>
+                  <h3 className="font-bold text-gray-900 mb-1">Договір і платіж</h3>
+                  <p className="text-gray-700">Підписуєте договір і вносите стартовий платіж</p>
                 </div>
               </div>
               <div className="flex gap-4">
@@ -65,8 +54,8 @@ export default function DeliveryPage() {
                   3
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900 mb-1">Доставка</h3>
-                  <p className="text-gray-700">Автомобіль доставляється до вказаного місця</p>
+                  <h3 className="font-bold text-gray-900 mb-1">Доставка або самовивіз</h3>
+                  <p className="text-gray-700">Авто доставляється до вказаного місця або забираєте самостійно</p>
                 </div>
               </div>
               <div className="flex gap-4">
@@ -75,7 +64,7 @@ export default function DeliveryPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900 mb-1">Отримання</h3>
-                  <p className="text-gray-700">Перевірка автомобіля та остаточна оплата</p>
+                  <p className="text-gray-700">Перевірка автомобіля та передача ключів</p>
                 </div>
               </div>
             </div>
@@ -83,16 +72,16 @@ export default function DeliveryPage() {
 
           <section className="bg-gray-50 rounded-2xl p-6">
             <p className="text-gray-700">
-              <strong>Увага:</strong> Для розрахунку точної вартості та термінів доставки, 
-              зв&apos;яжіться з нашими менеджерами за телефонами: 
-              <a href="tel:+380679395702" className="text-gray-900 font-semibold hover:underline ml-1">
+              <strong>Увага:</strong> Для розрахунку вартості та термінів доставки
+              зв&apos;яжіться з менеджерами:{" "}
+              <a href="tel:+380679395702" className="text-gray-900 font-semibold hover:underline">
                 +38 067 939 57 02
               </a>
-              , 
+              ,{" "}
               <a href="tel:+380630259621" className="text-gray-900 font-semibold hover:underline">
                 +38 063 025 96 21
               </a>
-              , 
+              ,{" "}
               <a href="tel:+380668761383" className="text-gray-900 font-semibold hover:underline">
                 +38 066 876 13 83
               </a>
@@ -103,4 +92,3 @@ export default function DeliveryPage() {
     </div>
   );
 }
-
