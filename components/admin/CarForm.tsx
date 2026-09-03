@@ -116,8 +116,14 @@ export default function CarForm({ initial, submitLabel, onSubmit }: CarFormProps
   }, []);
 
   const models = useMemo(() => {
+    const brandName = values.brand.trim().toLowerCase();
+    if (!brandName) return [];
     const brand = brands.find(
-      (b) => b.title === values.brand || b.value === values.brand
+      (b) =>
+        b.title.toLowerCase() === brandName ||
+        b.value.toLowerCase() === brandName ||
+        b.title.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase() ===
+          brandName.normalize("NFD").replace(/\p{M}/gu, "")
     );
     return brand?.models || [];
   }, [brands, values.brand]);
@@ -257,42 +263,39 @@ export default function CarForm({ initial, submitLabel, onSubmit }: CarFormProps
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-semibold mb-2">Марка</label>
-            <select
+            <input
               className="admin-input"
+              list="car-brands-list"
               value={values.brand}
-              onChange={(e) => {
-                setField("brand", e.target.value);
-                setField("mark", "");
-              }}
+              onChange={(e) => setField("brand", e.target.value)}
+              placeholder="Toyota, BYD, Škoda…"
               required
-            >
-              <option value="">Оберіть марку</option>
+              autoComplete="off"
+            />
+            <datalist id="car-brands-list">
               {brands.map((b) => (
-                <option key={b.value} value={b.title}>
-                  {b.title}
-                </option>
+                <option key={b.value} value={b.title} />
               ))}
-            </select>
+            </datalist>
+            <p className="text-xs text-muted mt-1">Оберіть зі списку або введіть свою</p>
           </div>
           <div>
             <label className="block text-sm font-semibold mb-2">Модель</label>
-            <select
+            <input
               className="admin-input"
+              list="car-models-list"
               value={values.mark}
               onChange={(e) => setField("mark", e.target.value)}
+              placeholder="RAV4, Model Y, Octavia…"
               required
-              disabled={!values.brand}
-            >
-              <option value="">Оберіть модель</option>
+              autoComplete="off"
+            />
+            <datalist id="car-models-list">
               {models.map((m) => (
-                <option key={m.value} value={m.title}>
-                  {m.title}
-                </option>
+                <option key={m.value} value={m.title} />
               ))}
-              {values.mark && !models.some((m) => m.title === values.mark) && (
-                <option value={values.mark}>{values.mark}</option>
-              )}
-            </select>
+            </datalist>
+            <p className="text-xs text-muted mt-1">Оберіть зі списку або введіть свою</p>
           </div>
         </div>
 
