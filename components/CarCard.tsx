@@ -29,6 +29,8 @@ interface CarCardProps {
   onSelect?: () => void;
   /** Додаткові дії під карткою (адмінка) */
   footer?: ReactNode;
+  /** Кастомне посилання (наприклад, редагування в адмінці) */
+  linkHref?: string;
   className?: string;
   selected?: boolean;
 }
@@ -124,19 +126,22 @@ export default function CarCard({
   showFavorite = true,
   onSelect,
   footer,
+  linkHref,
   className = "",
   selected = false,
 }: CarCardProps) {
   const shellClass = `card group flex flex-col h-full ${
     selected ? "border-brand ring-2 ring-brand/20" : ""
   } ${className}`;
+  const isAdminCard = Boolean(footer);
+  const cardHref = linkHref ?? (isAdminCard ? undefined : `/car/${car.id}`);
 
   const body = (
     <CarCardBody
       car={car}
       badge={badge}
       showFavorite={showFavorite && !onSelect && !footer}
-      showDetailsButton={!onSelect}
+      showDetailsButton={!onSelect && !isAdminCard}
     />
   );
 
@@ -153,9 +158,13 @@ export default function CarCard({
 
   return (
     <div className={shellClass}>
-      <Link href={`/car/${car.id}`} className="flex flex-col flex-1 min-h-0">
-        {body}
-      </Link>
+      {cardHref ? (
+        <Link href={cardHref} className="flex flex-col flex-1 min-h-0">
+          {body}
+        </Link>
+      ) : (
+        <div className="flex flex-col flex-1 min-h-0">{body}</div>
+      )}
       {footer}
     </div>
   );

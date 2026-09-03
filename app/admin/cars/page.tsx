@@ -1,9 +1,8 @@
-import DeleteButton from "@/components/DeleteButton";
-import DeactivateCarButton from "@/components/admin/DeactivateCarButton";
 import TelegramChannelSyncButton from "@/components/admin/TelegramChannelSyncButton";
+import CarCardAdminFooter from "@/components/admin/CarCardAdminFooter";
 import CarCard from "@/components/CarCard";
 import { CAR_CARD_GRID } from "@/lib/car-card";
-import { CAR_STATUSES, statusLabel } from "@/lib/car-status";
+import { CAR_STATUSES } from "@/lib/car-status";
 import { prisma } from "@/lib/db";
 import { findCarIdsByAdminQuery } from "@/lib/prisma-filters";
 import Link from "next/link";
@@ -20,13 +19,6 @@ interface PageProps {
     status?: string;
     partnerId?: string;
   }>;
-}
-
-function statusBadgeClass(status: string | null | undefined): string {
-  if (status === "available") return "admin-badge-done";
-  if (status === "on_order" || status === "reserved") return "admin-badge-progress";
-  if (status === "sold" || status === "inactive") return "admin-badge-spam";
-  return "admin-badge-new";
 }
 
 export default async function CarsPage({ searchParams }: PageProps) {
@@ -184,32 +176,14 @@ export default async function CarsPage({ searchParams }: PageProps) {
               key={car.id}
               car={car}
               showFavorite={false}
+              linkHref={`/admin/cars/${car.id}`}
               footer={
-                <div className="space-y-2 p-3 pt-0 border-t border-border mt-auto">
-                  <div className="flex flex-wrap gap-1.5">
-                    <span className={`admin-badge ${statusBadgeClass(car.status)}`}>
-                      {statusLabel(car.status)}
-                    </span>
-                    {car.telegramPublished && (
-                      <span className="admin-badge admin-badge-done">В каналі</span>
-                    )}
-                    {car.partner && (
-                      <span className="admin-badge admin-badge-new">
-                        {car.partner.name || "Партнер"}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Link
-                      href={`/admin/cars/${car.id}`}
-                      className="admin-btn admin-btn-primary flex-1 text-sm min-h-10"
-                    >
-                      Редагувати
-                    </Link>
-                    <DeactivateCarButton id={car.id} status={car.status} />
-                    <DeleteButton id={car.id} />
-                  </div>
-                </div>
+                <CarCardAdminFooter
+                  id={car.id}
+                  status={car.status}
+                  telegramPublished={car.telegramPublished}
+                  partnerName={car.partner?.name}
+                />
               }
             />
           ))}
