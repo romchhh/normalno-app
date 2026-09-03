@@ -8,6 +8,7 @@ import { convertUAHToUSD } from "@/lib/currency-converter";
 import { resolveCarUploadDir } from "@/lib/project-root";
 import { readAppSettings } from "@/lib/app-settings";
 import { getApi, isTelegramBotConfigured } from "@/lib/telegram-bot";
+import { getCarTelegramDeepLink } from "@/lib/telegram-car-links";
 import { verifyBotChannelRights } from "@/lib/telegram-channel-rights";
 
 type CarForPublish = {
@@ -172,6 +173,10 @@ export function formatCarChannelPost(car: CarForPublish): string {
   lines.push("");
   lines.push("🚗 Запрошуємо на тест-драйв! 😉");
   lines.push("");
+  lines.push(
+    `<a href="${getCarTelegramDeepLink(car.id)}">ОНОВИТИ АВТО 🚙</a>`
+  );
+  lines.push("");
   lines.push(`<i>${escapeHtml(BRAND_NAME)}</i> · кредит чи лізинг — підберемо умови під вас`);
 
   return lines.join("\n");
@@ -245,11 +250,10 @@ function carKeyboard(carId: number) {
   const siteBase = (process.env.WEB_APP_URL || `${BRAND_URL}/wizard`)
     .replace(/\/$/, "")
     .replace(/\/wizard$/, "");
-  const carUrl = `${siteBase || BRAND_URL}/car/${carId}`;
   const wizardUrl = `${siteBase || BRAND_URL}/wizard`;
 
   return new InlineKeyboardBuilder()
-    .url("🚙 Оновити авто", carUrl)
+    .url("🚙 Оновити авто", getCarTelegramDeepLink(carId))
     .row()
     .url("✨ Кредит чи лізинг", wizardUrl)
     .build();

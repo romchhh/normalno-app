@@ -3,6 +3,7 @@ import type { InlineKeyboardMarkup, Message, Update } from "node-telegram-bot-ap
 import { fromPath } from "node-telegram-bot-api/node";
 import { prisma } from "./db";
 import { BRAND_NAME, BRAND_URL } from "@/lib/brand";
+import { parseCarStartPayload } from "@/lib/telegram-car-links";
 
 const WEB_APP_URL = process.env.WEB_APP_URL || `${BRAND_URL}/wizard`;
 
@@ -144,10 +145,10 @@ export async function handleStartCommand(msg: Message) {
     await upsertBotUser(msg);
 
     const commandText = msg.text || "";
-    const carIdMatch = commandText.match(/\/start\s+car_(\d+)/);
+    const startPayload = commandText.replace(/^\/start(?:@\w+)?\s*/i, "").trim();
+    const carId = parseCarStartPayload(startPayload);
 
-    if (carIdMatch) {
-      const carId = parseInt(carIdMatch[1], 10);
+    if (carId) {
       const car = await prisma.car.findUnique({
         where: { id: carId },
         select: { id: true, title: true },

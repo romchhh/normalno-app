@@ -44,6 +44,19 @@ function IconTrash() {
   );
 }
 
+function IconSend() {
+  return (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+      />
+    </svg>
+  );
+}
+
 export default function CarCardAdminFooter({
   id,
   status,
@@ -51,6 +64,8 @@ export default function CarCardAdminFooter({
   partnerName,
 }: Props) {
   const [loading, setLoading] = useState(false);
+  const [publishError, setPublishError] = useState("");
+  const [published, setPublished] = useState(Boolean(telegramPublished));
   const listed = isCarPubliclyListed(status);
 
   const setListed = async (nextListed: boolean) => {
@@ -90,6 +105,30 @@ export default function CarCardAdminFooter({
     }
   };
 
+  const handlePublish = async () => {
+    if (loading) return;
+    const confirmText = published
+      ? "Опублікувати це авто в канал ще раз?"
+      : "Опублікувати це авто в Telegram-канал?";
+    if (!window.confirm(confirmText)) return;
+
+    setLoading(true);
+    setPublishError("");
+    try {
+      const res = await fetch(`/api/admin/cars/${id}/publish`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Не вдалося опублікувати");
+      }
+      setPublished(true);
+      window.location.reload();
+    } catch (err: unknown) {
+      setPublishError(err instanceof Error ? err.message : "Помилка публікації");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="admin-car-footer">
       <div className="flex flex-wrap gap-1.5">
@@ -117,6 +156,22 @@ export default function CarCardAdminFooter({
           <span className="admin-toggle-thumb" />
         </button>
       </div>
+
+      <button
+        type="button"
+        onClick={handlePublish}
+        disabled={loading}
+        className={`admin-icon-btn w-full ${
+          published ? "admin-icon-btn-secondary" : "admin-icon-btn-telegram"
+        }`}
+        title={published ? "Опублікувати знову" : "Опублікувати в канал"}
+      >
+        <IconSend />
+        <span>{published ? "В каналі · опублікувати знову" : "Опублікувати в канал"}</span>
+      </button>
+      {publishError && (
+        <p className="text-xs text-red-600 leading-snug">{publishError}</p>
+      )}
 
       <div className="flex gap-2">
         <Link

@@ -190,13 +190,6 @@ function SidebarContent({
   );
 }
 
-const MOBILE_TABS = [
-  { href: "/admin", label: "Головна", icon: "dashboard", match: "exact" as const },
-  { href: "/admin/leads", label: "Заявки", icon: "leads", match: "prefix" as const },
-  { href: "/admin/cars", label: "Авто", icon: "cars", match: "prefix" as const },
-  { href: "/admin/users", label: "Бот", icon: "users", match: "prefix" as const },
-];
-
 export default function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -233,13 +226,6 @@ export default function AdminShell({ children }: { children: ReactNode }) {
     () => (role ? filterNavForRole(ADMIN_NAV, role) : ADMIN_NAV),
     [role]
   );
-
-  const mobileTabs = useMemo(() => {
-    if (!role) return MOBILE_TABS;
-    return MOBILE_TABS.filter((tab) =>
-      filterNavForRole([{ id: "m", label: "", items: [tab] }], role).length > 0
-    );
-  }, [role]);
 
   const showAddCar = role ? canManageCars(role) : true;
   const roleLabel = role ? ROLE_LABELS[role] : undefined;
@@ -320,33 +306,6 @@ export default function AdminShell({ children }: { children: ReactNode }) {
         </header>
 
         <main className="admin-content">{children}</main>
-
-        {/* Mobile bottom tabs */}
-        <nav className="admin-bottom-nav lg:hidden">
-          {mobileTabs.map((tab) => {
-            const active = isNavActive(pathname, tab);
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className={`admin-bottom-tab ${active ? "admin-bottom-tab-active" : ""}`}
-              >
-                <NavIcon name={tab.icon} />
-                <span>{tab.label}</span>
-              </Link>
-            );
-          })}
-          <button
-            type="button"
-            onClick={() => setMenuOpen(true)}
-            className="admin-bottom-tab"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-            <span>Меню</span>
-          </button>
-        </nav>
       </div>
     </div>
   );

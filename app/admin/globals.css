@@ -81,7 +81,7 @@ body {
 .admin-content {
   flex: 1;
   padding: 1rem;
-  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
 }
 
 @media (min-width: 1024px) {
@@ -175,41 +175,6 @@ body {
   to {
     transform: translateX(0);
   }
-}
-
-.admin-bottom-nav {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 40;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0;
-  padding: 0.35rem 0.25rem calc(0.35rem + env(safe-area-inset-bottom));
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid var(--border);
-}
-
-.admin-bottom-tab {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.15rem;
-  min-height: 3.25rem;
-  padding: 0.35rem 0.25rem;
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  font-size: 0.625rem;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.admin-bottom-tab-active {
-  color: var(--brand);
 }
 
 .admin-card {
@@ -431,6 +396,23 @@ body {
 .admin-icon-btn-danger:hover {
   background: #fee2e2;
   border-color: #fca5a5;
+}
+
+.admin-icon-btn-secondary {
+  background: white;
+  border-color: var(--border);
+  color: var(--foreground);
+}
+
+.admin-icon-btn-telegram {
+  background: #229ed9;
+  border-color: #229ed9;
+  color: white;
+}
+
+.admin-icon-btn-telegram:hover {
+  background: #1a8bc2;
+  border-color: #1a8bc2;
 }
 
 .card {
