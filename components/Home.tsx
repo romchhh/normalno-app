@@ -2,6 +2,8 @@ import { prisma } from "@/lib/db";
 import CategorySwiper from "./CategorySwiper";
 import HomeClient from "./HomeClient";
 import Banner from "./Banner";
+import PartnersList from "./PartnersList";
+import { getActivePartners } from "@/lib/partners-db";
 import { stat } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
@@ -94,6 +96,8 @@ export default async function HomePage() {
     )
     .slice(0, 4);
 
+  const partners = await getActivePartners();
+
   return (
     <div className="min-h-screen bg-white pb-20">
       {/* --- Hero Banner Section --- */}
@@ -110,6 +114,12 @@ export default async function HomePage() {
         brands={uniqueBrands}
         modelsByBrand={modelsByBrand}
       />
+
+      {partners.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-14">
+          <PartnersList partners={partners} />
+        </div>
+      )}
     </div>
   );
 }

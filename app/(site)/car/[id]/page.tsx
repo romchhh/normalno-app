@@ -75,7 +75,7 @@ export default async function CarPage({ params }: CarPageProps) {
   });
 
   return (
-    <div className="min-h-screen bg-white pb-24">
+    <div className="min-h-screen bg-white pb-40 md:pb-28">
       <CarViewTracker
         car={{
           id: car.id,
@@ -142,6 +142,7 @@ export default async function CarPage({ params }: CarPageProps) {
           </div>
           <div className="flex flex-col items-stretch sm:items-end gap-3 w-full sm:w-auto">
             <Order
+              stickyOnScroll
               carInfo={{
                 id: car.id,
                 title: car.title,
@@ -162,6 +163,10 @@ export default async function CarPage({ params }: CarPageProps) {
           </div>
         </div>
 
+        <div className="mb-10">
+          <DropdownCar car={car} />
+        </div>
+
         {description && (
           <div className="mb-8">
             <h2 className="text-lg font-bold mb-3">Опис</h2>
@@ -170,10 +175,6 @@ export default async function CarPage({ params }: CarPageProps) {
             </div>
           </div>
         )}
-
-        <div className="mb-10">
-          <DropdownCar car={car} />
-        </div>
 
         {car.video && (
           <div className="mb-10">

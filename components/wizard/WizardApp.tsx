@@ -310,12 +310,21 @@ export default function WizardApp() {
 
   const applySharedPhone = useCallback((raw: string) => {
     let digits = raw.replace(/\D/g, "");
+    if (!digits) return;
+
+    // International UA: 380XXXXXXXXX
     if (digits.startsWith("380") && digits.length >= 12) {
       setPhone(`+${digits.slice(0, 12)}`);
       return;
     }
+    // Local UA: 0XXXXXXXXX
     if (digits.startsWith("0") && digits.length >= 10) {
       setPhone(`+38${digits.slice(0, 10)}`);
+      return;
+    }
+    // Already without leading 0/380 but 9 digits after country
+    if (digits.startsWith("38") && digits.length >= 12) {
+      setPhone(`+${digits.slice(0, 12)}`);
       return;
     }
     if (digits.length >= 9) {
@@ -330,23 +339,49 @@ export default function WizardApp() {
       return;
     }
 
-    const onContact = (event: {
+    type ContactPayload = {
       status?: string;
-      response?: { contact?: { phone_number?: string } };
-    }) => {
-      if (event.status === "sent" && event.response?.contact?.phone_number) {
-        applySharedPhone(event.response.contact.phone_number);
-        setError("");
-        haptic("success");
+      responseUnsafe?: { contact?: { phone_number?: string } };
+      response?: { contact?: { phone_number?: string } } | string;
+    };
+
+    const extractPhone = (payload?: ContactPayload | null): string | null => {
+      if (!payload) return null;
+      const fromUnsafe = payload.responseUnsafe?.contact?.phone_number;
+      if (fromUnsafe) return fromUnsafe;
+      if (payload.response && typeof payload.response === "object") {
+        return payload.response.contact?.phone_number || null;
+      }
+      return null;
+    };
+
+    const applyFromPayload = (payload?: ContactPayload | null) => {
+      const number = extractPhone(payload);
+      if (!number) return false;
+      applySharedPhone(number);
+      setError("");
+      haptic("success");
+      return true;
+    };
+
+    const onContact = (event: ContactPayload) => {
+      if (event.status === "sent") {
+        if (!applyFromPayload(event)) {
+          setError("Не вдалося зчитати номер. Введіть його вручну.");
+        }
+      } else if (event.status === "cancelled") {
+        setError("Контакт не надано — введіть номер вручну");
       }
       tg.offEvent?.("contactRequested", onContact as (...args: unknown[]) => void);
     };
 
     tg.onEvent?.("contactRequested", onContact);
-    tg.requestContact((shared) => {
-      if (!shared) {
-        setError("Контакт не надано — введіть номер вручну");
+    tg.requestContact((shared, response) => {
+      if (shared) {
+        applyFromPayload(response);
+        return;
       }
+      setError("Контакт не надано — введіть номер вручну");
     });
   }, [applySharedPhone]);
 

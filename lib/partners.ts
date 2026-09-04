@@ -63,3 +63,11 @@ export function partnerCatalogAbsoluteUrl(slug: string, origin?: string): string
     "https://normalno-auto.com";
   return `${base.replace(/\/$/, "")}${partnerCatalogPath(slug)}`;
 }
+
+export type PublicPartner = {
+  id: number;
+  slug: string;
+  name: string;
+  photo: string | null;
+  description: string;
+};

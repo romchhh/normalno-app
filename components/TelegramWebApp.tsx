@@ -80,12 +80,29 @@ declare global {
           selectionChanged: () => void;
         };
         /** Bot API 6.9+ — request phone contact share */
-        requestContact?: (callback?: (shared: boolean) => void) => void;
+        requestContact?: (
+          callback?: (
+            shared: boolean,
+            response?: {
+              status?: string;
+              response?: string | { contact?: { phone_number?: string } };
+              responseUnsafe?: {
+                contact?: {
+                  phone_number?: string;
+                  first_name?: string;
+                  last_name?: string;
+                  user_id?: number;
+                };
+              };
+            }
+          ) => void
+        ) => void;
         onEvent?: (
           eventType: string,
           eventHandler: (event: {
             status?: string;
-            response?: {
+            response?: string | { contact?: { phone_number?: string } };
+            responseUnsafe?: {
               contact?: {
                 phone_number?: string;
                 first_name?: string;

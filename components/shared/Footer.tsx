@@ -4,11 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { BRAND_NAME, SOCIAL_LINKS } from "@/lib/brand";
+import type { PublicPartner } from "@/lib/partners";
+import PartnersList from "@/components/PartnersList";
 import SheetModal from "@/components/SheetModal";
 
 const NAV_LINKS = [
   { href: "/", label: "Головна" },
   { href: "/catalog", label: "Каталог" },
+  { href: "/partners", label: "Наші партнери" },
   { href: "/faq", label: "FAQ" },
   { href: "/leasing", label: "Лізінг" },
   { href: "/credit", label: "Кредит" },
@@ -30,7 +33,11 @@ function SocialIcon({ href, label, children }: { href: string; label: string; ch
   );
 }
 
-export default function Footer() {
+type FooterProps = {
+  partners?: PublicPartner[];
+};
+
+export default function Footer({ partners = [] }: FooterProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -148,6 +155,12 @@ export default function Footer() {
             </button>
           </div>
         </div>
+
+        {partners.length > 0 && (
+          <div className="border-t border-border mt-10 pt-8">
+            <PartnersList partners={partners} variant="footer" />
+          </div>
+        )}
 
         <div className="border-t border-border mt-10 pt-6">
           <p className="text-center text-xs text-muted">

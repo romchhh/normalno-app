@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
-import Footer from "@/components/shared/Footer";
+import Footer from "@/components/shared/SiteFooter";
 import BottomNav from "@/components/shared/BottomNav";
 import Header from "@/components/shared/Header";
 import ScrollToTop from "@/components/ScrollToTop";
