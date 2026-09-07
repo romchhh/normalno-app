@@ -12,6 +12,7 @@ import { CAR_CARD_GRID } from "@/lib/car-card";
 import CarViewTracker from "@/components/CarViewTracker";
 import ShareButton from "@/components/ShareButton";
 import CarBackButton from "@/components/CarBackButton";
+import { resolveCarPhotos } from "@/lib/car-photo";
 
 interface CarPageProps {
   params: Promise<{ id: string }>;
@@ -53,7 +54,7 @@ export default async function CarPage({ params }: CarPageProps) {
     );
   }
 
-  const photos = car.photo?.split(" ").filter(Boolean) || [];
+  const photos = resolveCarPhotos(car.photo);
   const monthly = formatUahMoney(car.monthlyPayment);
   const advance = formatUahMoney(car.advancePayment);
   const videoEmbed = car.video ? youtubeEmbed(car.video) : null;

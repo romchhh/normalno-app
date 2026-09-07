@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination, Keyboard, Thumbs, FreeMode, A11y } from "swiper/modules";
 import type { Swiper as SwiperType } from "swiper";
-import { resolveCarPhotoUrl } from "@/lib/car-photo";
+import { canOptimizeCarPhoto, resolveCarPhotoUrl } from "@/lib/car-photo";
+import CarImage from "./CarImage";
 
 import "swiper/css";
 import "swiper/css/navigation";
@@ -76,17 +76,18 @@ export default function ImageCarousel({
           {resolvedPhotos.map((photo, idx) => (
             <SwiperSlide key={`${photo}-${idx}`}>
               <div className="relative w-full h-full select-none">
-                <Image
+                <CarImage
                   src={photo}
                   alt={`${title} — фото ${idx + 1}`}
                   fill
-                  className="object-cover"
+                  className="object-cover pointer-events-none"
                   sizes="(max-width: 768px) 100vw, (max-width: 1280px) 80vw, 1120px"
                   priority={idx === 0}
                   loading={idx === 0 ? "eager" : "lazy"}
                   draggable={false}
-                  placeholder="blur"
-                  blurDataURL={BLUR_DATA_URL}
+                  {...(canOptimizeCarPhoto(photo)
+                    ? { placeholder: "blur" as const, blurDataURL: BLUR_DATA_URL }
+                    : {})}
                 />
               </div>
             </SwiperSlide>
@@ -116,7 +117,7 @@ export default function ImageCarousel({
                     : "border-border"
                 }`}
               >
-                <Image
+                <CarImage
                   src={photo}
                   alt=""
                   fill

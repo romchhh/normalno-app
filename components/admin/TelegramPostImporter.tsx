@@ -165,7 +165,13 @@ export default function TelegramPostImporter({ onImported }: Props) {
                       className="aspect-square rounded-xl overflow-hidden border border-border bg-surface"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={resolveCarPhotoUrl(photo)} alt="" className="w-full h-full object-cover" />
+                      <img
+                        src={resolveCarPhotoUrl(photo)}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                        loading="lazy"
+                      />
                     </div>
                   ))}
                 </div>

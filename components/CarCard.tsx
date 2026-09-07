@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import type { ReactNode } from "react";
 import { formatPrice } from "@/lib/price-format";
 import { formatUahMoney } from "@/lib/car-form";
 import { resolveCarPhotoUrl } from "@/lib/car-photo";
+import CarImage from "./CarImage";
 import FavoriteToggle from "./FavoriteToggle";
 
 export type CarCardData = {
@@ -62,7 +62,7 @@ function CarCardBody({
   return (
     <>
       <div className="relative w-full aspect-[4/3] bg-surface overflow-hidden">
-        <Image
+        <CarImage
           src={photoSrc}
           alt={String(car.title)}
           fill

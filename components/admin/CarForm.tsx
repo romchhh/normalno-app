@@ -222,7 +222,13 @@ export default function CarForm({ initial, submitLabel, onSubmit }: CarFormProps
                   className="flex items-center gap-2 p-2 rounded-xl border border-border"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={resolveCarPhotoUrl(url)} alt="" className="w-14 h-10 object-cover rounded-lg bg-surface" />
+                  <img
+                    src={resolveCarPhotoUrl(url)}
+                    alt=""
+                    className="w-14 h-10 object-cover rounded-lg bg-surface"
+                    referrerPolicy="no-referrer"
+                    loading="lazy"
+                  />
                   <p className="text-xs text-muted truncate flex-1">{url}</p>
                   <button
                     type="button"
