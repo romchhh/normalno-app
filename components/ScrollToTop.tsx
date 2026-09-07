@@ -1,12 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import ContactButton from "./ContactButton";
 
 export default function ScrollToTop() {
+  const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(false);
+  // On car pages the sticky Order CTA replaces these FABs
+  const hideOnCarPage = pathname?.startsWith("/car/");
 
   useEffect(() => {
+    if (hideOnCarPage) {
+      setIsVisible(false);
+      return;
+    }
+
     const toggleVisibility = () => {
       if (window.pageYOffset > 300) {
         setIsVisible(true);
@@ -15,9 +24,10 @@ export default function ScrollToTop() {
       }
     };
 
+    toggleVisibility();
     window.addEventListener("scroll", toggleVisibility);
     return () => window.removeEventListener("scroll", toggleVisibility);
-  }, []);
+  }, [hideOnCarPage]);
 
   const scrollToTop = () => {
     window.scrollTo({
@@ -26,7 +36,7 @@ export default function ScrollToTop() {
     });
   };
 
-  if (!isVisible) return null;
+  if (hideOnCarPage || !isVisible) return null;
 
   return (
     <>

@@ -1,8 +1,17 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation, Pagination, Keyboard, Thumbs, FreeMode, A11y } from "swiper/modules";
+import type { Swiper as SwiperType } from "swiper";
 import { resolveCarPhotoUrl } from "@/lib/car-photo";
+
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
+import "swiper/css/thumbs";
+import "swiper/css/free-mode";
 
 interface ImageCarouselProps {
   photos: string[];
@@ -10,191 +19,116 @@ interface ImageCarouselProps {
   showThumbnails?: boolean;
 }
 
-export default function ImageCarousel({ 
-  photos, 
-  title, 
-  showThumbnails = true 
+const BLUR_DATA_URL =
+  "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q==";
+
+export default function ImageCarousel({
+  photos,
+  title,
+  showThumbnails = true,
 }: ImageCarouselProps) {
-  const [index, setIndex] = useState(0);
-  const [touchStart, setTouchStart] = useState(0);
-  const [touchEnd, setTouchEnd] = useState(0);
-
-  const next = () => setIndex((prev) => (prev + 1) % photos.length);
-  const prev = () => setIndex((prev) => (prev - 1 + photos.length) % photos.length);
-  const goToImage = (idx: number) => setIndex(idx);
-
-  // Minimum swipe distance (in pixels)
-  const minSwipeDistance = 50;
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(0);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isLeftSwipe) {
-      next();
-    }
-    if (isRightSwipe) {
-      prev();
-    }
-  };
-
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft") {
-        setIndex((prev) => (prev - 1 + photos.length) % photos.length);
-      }
-      if (e.key === "ArrowRight") {
-        setIndex((prev) => (prev + 1) % photos.length);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyPress);
-    return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [photos.length]);
+  const [thumbsSwiper, setThumbsSwiper] = useState<SwiperType | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   if (!photos || photos.length === 0) return null;
 
   const resolvedPhotos = photos.map((photo) =>
     photo.trim() ? resolveCarPhotoUrl(photo) : "/logo.svg"
   );
+  const multi = resolvedPhotos.length > 1;
 
   return (
-    <div className="w-full">
-      {/* Main Image - Scrollable Container */}
-      <div 
-        className="relative w-full aspect-[4/3] bg-gray-100 rounded-2xl overflow-hidden mb-4 select-none"
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-      >
-        <div 
-          className="flex transition-transform duration-300 ease-in-out h-full"
-          style={{ transform: `translateX(-${index * 100}%)` }}
+    <div className="w-full car-gallery">
+      <div className="relative w-full aspect-[4/3] bg-surface rounded-2xl overflow-hidden mb-4">
+        {multi && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 md:hidden pointer-events-none">
+            <span className="bg-black/55 text-white text-xs font-medium px-3 py-1 rounded-full tabular-nums">
+              {activeIndex + 1} / {resolvedPhotos.length}
+            </span>
+          </div>
+        )}
+
+        <Swiper
+          modules={[Navigation, Pagination, Keyboard, Thumbs, A11y]}
+          slidesPerView={1}
+          spaceBetween={0}
+          speed={320}
+          loop={resolvedPhotos.length > 2}
+          grabCursor
+          resistanceRatio={0.65}
+          keyboard={{ enabled: true }}
+          pagination={
+            multi
+              ? {
+                  clickable: true,
+                  dynamicBullets: resolvedPhotos.length > 8,
+                }
+              : false
+          }
+          navigation={multi}
+          thumbs={{
+            swiper:
+              thumbsSwiper && !thumbsSwiper.destroyed ? thumbsSwiper : null,
+          }}
+          onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
+          className="h-full w-full"
         >
           {resolvedPhotos.map((photo, idx) => (
-            <div key={idx} className="relative flex-shrink-0 w-full h-full">
-      <Image
-                src={photo}
-                alt={`${title} photo ${idx + 1}`}
-        fill
-                className="object-cover"
-                priority={idx === 0}
-                loading={idx === 0 ? "eager" : "lazy"}
-                draggable={false}
-                placeholder="blur"
-                blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
-              />
-            </div>
+            <SwiperSlide key={`${photo}-${idx}`}>
+              <div className="relative w-full h-full select-none">
+                <Image
+                  src={photo}
+                  alt={`${title} — фото ${idx + 1}`}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1280px) 80vw, 1120px"
+                  priority={idx === 0}
+                  loading={idx === 0 ? "eager" : "lazy"}
+                  draggable={false}
+                  placeholder="blur"
+                  blurDataURL={BLUR_DATA_URL}
+                />
+              </div>
+            </SwiperSlide>
           ))}
-        </div>
-        
-        {/* Scroll indicator for mobile */}
-        {photos.length > 1 && (
-          <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-black/50 text-white text-xs px-3 py-1 rounded-full z-10 md:hidden">
-            {index + 1} / {photos.length}
-          </div>
-        )}
-        
-        {/* Pagination Dots */}
-        {photos.length > 1 && (
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
-            {photos.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => goToImage(idx)}
-                className={`h-2 rounded-full transition-all ${
-                  idx === index
-                    ? "w-6 bg-white"
-                    : "w-2 bg-white/50 hover:bg-white/75"
-                }`}
-                aria-label={`Go to image ${idx + 1}`}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Navigation Arrows (Desktop) */}
-      {photos.length > 1 && (
-        <>
-          <button
-            onClick={prev}
-              className="hidden md:flex absolute left-4 top-1/2 transform -translate-y-1/2 p-3 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-white transition-all z-10"
-              aria-label="Previous image"
-            >
-              <svg
-                className="w-6 h-6 text-gray-900"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-          </button>
-          <button
-            onClick={next}
-              className="hidden md:flex absolute right-4 top-1/2 transform -translate-y-1/2 p-3 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-white transition-all z-10"
-              aria-label="Next image"
-            >
-              <svg
-                className="w-6 h-6 text-gray-900"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-          </button>
-        </>
-        )}
+        </Swiper>
       </div>
 
-      {/* Thumbnail Gallery - Scrollable */}
-      {showThumbnails && photos.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory scroll-smooth">
+      {showThumbnails && multi && (
+        <Swiper
+          modules={[FreeMode, Thumbs, A11y]}
+          onSwiper={setThumbsSwiper}
+          spaceBetween={8}
+          slidesPerView="auto"
+          freeMode
+          watchSlidesProgress
+          className="car-gallery-thumbs"
+        >
           {resolvedPhotos.map((photo, idx) => (
-            <button
-              key={idx}
-              onClick={() => goToImage(idx)}
-              className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all snap-start ${
-                idx === index
-                  ? "border-gray-900 scale-105"
-                  : "border-gray-200 hover:border-gray-400"
-              }`}
+            <SwiperSlide
+              key={`thumb-${photo}-${idx}`}
+              className="!w-20 !h-20 cursor-pointer"
             >
-              <Image
-                src={photo}
-                alt={`${title} thumbnail ${idx + 1}`}
-                fill
-                className="object-cover"
-                loading="lazy"
-                draggable={false}
-              />
-            </button>
+              <div
+                className={`relative w-full h-full rounded-lg overflow-hidden border-2 transition-colors ${
+                  idx === activeIndex
+                    ? "border-foreground"
+                    : "border-border"
+                }`}
+              >
+                <Image
+                  src={photo}
+                  alt=""
+                  fill
+                  className="object-cover pointer-events-none"
+                  sizes="80px"
+                  loading="lazy"
+                  draggable={false}
+                />
+              </div>
+            </SwiperSlide>
           ))}
-        </div>
+        </Swiper>
       )}
     </div>
   );

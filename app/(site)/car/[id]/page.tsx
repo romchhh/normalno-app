@@ -11,7 +11,7 @@ import CarCard from "@/components/CarCard";
 import { CAR_CARD_GRID } from "@/lib/car-card";
 import CarViewTracker from "@/components/CarViewTracker";
 import ShareButton from "@/components/ShareButton";
-import ScrollToTop from "@/components/ScrollToTop";
+import CarBackButton from "@/components/CarBackButton";
 
 interface CarPageProps {
   params: Promise<{ id: string }>;
@@ -89,8 +89,8 @@ export default async function CarPage({ params }: CarPageProps) {
           mark: car.mark,
         }}
       />
-      <ScrollToTop />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-8">
+        <CarBackButton />
         {photos.length > 0 && (
           <div className="relative mb-6">
             <div className="absolute top-4 right-4 z-10 flex gap-2">

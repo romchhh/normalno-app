@@ -68,10 +68,24 @@ export default function BannerUpload() {
         method: "POST",
         body: formData,
       });
-      const data = await res.json();
+
+      // Nginx 413 returns HTML, not JSON — parse safely
+      const contentType = res.headers.get("content-type") || "";
+      const data = contentType.includes("application/json")
+        ? await res.json().catch(() => ({}))
+        : {};
+
+      if (res.status === 413) {
+        setError(
+          "Файл занадто великий для сервера. Стисніть зображення (рекомендовано до 1–2MB) і спробуйте знову."
+        );
+        return;
+      }
 
       if (!res.ok) {
-        setError(data.message || "Помилка при завантаженні");
+        setError(
+          (data as { message?: string }).message || "Помилка при завантаженні"
+        );
         return;
       }
 
@@ -79,7 +93,10 @@ export default function BannerUpload() {
       setSelectedImage(null);
       setPreviewSrc(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
-      setCurrentBanner(`${data.path || "/sale-banner.png"}?t=${data.timestamp || Date.now()}`);
+      const payload = data as { path?: string; timestamp?: number };
+      setCurrentBanner(
+        `${payload.path || "/sale-banner.png"}?t=${payload.timestamp || Date.now()}`
+      );
       setTimeout(() => setSuccess(false), 3000);
     } catch {
       setError("Помилка підключення до сервера");

@@ -111,8 +111,22 @@ function CarCardBody({
           <p className="text-sm mt-0.5 opacity-0">—</p>
         )}
         {showDetailsButton && (
-          <span className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-foreground transition-colors group-hover:border-gray-900 group-hover:bg-gray-900 group-hover:text-white">
+          <span className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-semibold text-white transition-colors group-hover:bg-brand-hover">
             Переглянути деталі
+            <svg
+              className="w-3.5 h-3.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2.5}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
           </span>
         )}
       </div>
