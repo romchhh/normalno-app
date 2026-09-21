@@ -13,11 +13,12 @@ const DRIVE_MAP: Record<string, string> = {
 const CATEGORY_MAP: Record<string, string> = {
   "Електро": "e-cars",
   "Електромобілі": "e-cars",
-  "Нові авто": "new-car",
   "Авто в Україні": "car-in-use",
-  "Комерційні": "commercial",
   "Мікроавтобуси": "micro-bus",
-  "Причепи": "trailers",
+  // Legacy labels → keep cars findable under active categories
+  "Нові авто": "car-in-use",
+  "Комерційні": "car-in-use",
+  "Причепи": "car-in-use",
 };
 
 function mapCategory(raw: string): string {

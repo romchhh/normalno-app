@@ -461,8 +461,6 @@ def detect_category(text: str, title: str) -> str:
         or "tesla" in lower
     ):
         return "Електро"
-    if "нов" in lower and "авто" in lower:
-        return "Нові авто"
     return "Авто в Україні"
 
 

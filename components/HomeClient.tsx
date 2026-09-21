@@ -1,23 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import CarCard from "./CarCard";
 import HomeFilters from "./HomeFilters";
 import ScrollToTop from "./ScrollToTop";
+import Pagination from "./Pagination";
 import { CAR_CARD_GRID } from "@/lib/car-card";
 import type { CarCardData } from "./CarCard";
 
 interface HomeClientProps {
-  randomCars: CarCardData[];
-  topCars: CarCardData[];
+  cars: CarCardData[];
+  totalCars: number;
+  currentPage: number;
+  totalPages: number;
   brands: string[];
   modelsByBrand: Record<string, string[]>;
 }
 
 export default function HomeClient({
-  randomCars,
-  topCars,
+  cars,
+  totalCars,
+  currentPage,
+  totalPages,
   brands,
   modelsByBrand,
 }: HomeClientProps) {
@@ -28,63 +32,55 @@ export default function HomeClient({
       <ScrollToTop />
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-14">
-        <div className="flex items-end justify-between mb-6">
+        <div className="flex items-end justify-between mb-6 gap-3">
           <div>
             <h2 className="section-title">Всі авто</h2>
             <p className="section-subtitle">Широкий вибір автомобілів у лізинг</p>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setShowFilters(true)}
-              className="btn-secondary"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                />
-              </svg>
-              <span className="hidden sm:inline">Фільтри</span>
-            </button>
-            <Link
-              href="/catalog"
-              className="hidden sm:inline-flex items-center text-sm text-muted hover:text-foreground transition-colors"
-            >
-              Дивитись всі
-              <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowFilters(true)}
+            className="btn-secondary shrink-0"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+              />
+            </svg>
+            <span className="hidden sm:inline">Фільтри</span>
+          </button>
         </div>
 
-        <div className={CAR_CARD_GRID}>
-          {randomCars.map((car) => (
-            <CarCard key={car.id} car={car} />
-          ))}
-        </div>
-
-        <div className="mt-6 text-center sm:hidden">
-          <Link href="/catalog" className="text-sm text-muted hover:text-foreground transition-colors">
-            Дивитись всі →
-          </Link>
-        </div>
+        {totalCars > 0 ? (
+          <>
+            <div className="mb-4 text-sm text-muted">
+              Знайдено{" "}
+              <span className="font-semibold text-foreground">{totalCars}</span>{" "}
+              {totalCars === 1
+                ? "автомобіль"
+                : totalCars < 5
+                  ? "автомобілі"
+                  : "автомобілів"}
+            </div>
+            <div className={CAR_CARD_GRID}>
+              {cars.map((car) => (
+                <CarCard key={car.id} car={car} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="text-muted text-center py-10">Поки немає автомобілів у каталозі</p>
+        )}
       </section>
 
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-14">
-        <div className="mb-6">
-          <h2 className="section-title">Топ авто</h2>
-          <p className="section-subtitle">Найпопулярніші та найновіші моделі</p>
-        </div>
-        <div className={CAR_CARD_GRID}>
-          {topCars.map((car) => (
-            <CarCard key={car.id} car={car} badge="Новинка" />
-          ))}
-        </div>
-      </section>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        baseUrl="/"
+      />
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-14">
         <div className="text-center mb-8">
