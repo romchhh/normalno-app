@@ -5,6 +5,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import Link from "next/link";
 import CategoryLinkCard from "./CategoryLinkCard";
+import { isActiveCategorySlug } from "@/lib/categories";
 
 interface Category {
   name: string;
@@ -36,7 +37,12 @@ export default function CategorySwiper() {
   }, []);
 
   const displayCategories = Object.keys(categories)
-    .filter((key) => key !== "main" && categories[key]?.name)
+    .filter(
+      (key) =>
+        key !== "main" &&
+        isActiveCategorySlug(key) &&
+        categories[key]?.name
+    )
     .map((key) => ({
       key,
       ...categories[key],

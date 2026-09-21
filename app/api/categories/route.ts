@@ -2,8 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir, readFile, unlink } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
+import {
+  CATALOG_CATEGORIES,
+  REMOVED_CATEGORY_SLUGS,
+} from "@/lib/categories";
 
 const CATEGORIES_FILE = path.join(process.cwd(), "data", "categories.json");
+
+type CategoryRecord = {
+  name: string;
+  image: string | null;
+  description: string | null;
+  slug: string;
+  priority: number;
+};
 
 // Disable body parsing limit for file uploads
 export const runtime = "nodejs";
@@ -17,28 +29,65 @@ async function ensureDataDir() {
   }
 }
 
-// Helper function to load categories
-async function loadCategories() {
+/**
+ * Canonical categories from lib/categories.ts + any custom JSON entries,
+ * except permanently removed slugs (new-car, commercial, trailers).
+ */
+async function loadCategories(): Promise<Record<string, CategoryRecord>> {
   await ensureDataDir();
-  const categories: Record<string, { name: string; image: string | null; description: string | null; slug: string; priority: number }> = {};
-  
+
+  let stored: Record<string, Partial<CategoryRecord>> = {};
   if (existsSync(CATEGORIES_FILE)) {
-    const fileContent = await readFile(CATEGORIES_FILE, "utf-8");
-    const loaded = JSON.parse(fileContent);
-    // Migrate old categories to include priority
-    Object.keys(loaded).forEach((key) => {
-      categories[key] = {
-        ...loaded[key],
-        priority: loaded[key].priority !== undefined ? loaded[key].priority : 999,
-      };
-    });
+    try {
+      stored = JSON.parse(await readFile(CATEGORIES_FILE, "utf-8"));
+    } catch (err) {
+      console.error("Error parsing categories.json:", err);
+    }
   }
-  
+
+  const categories: Record<string, CategoryRecord> = {};
+
+  for (const cat of CATALOG_CATEGORIES) {
+    const existing = stored[cat.slug] || {};
+    categories[cat.slug] = {
+      name: (existing.name && String(existing.name).trim()) || cat.name,
+      image: existing.image ?? cat.image,
+      description:
+        existing.description !== undefined
+          ? existing.description
+          : cat.description,
+      slug: cat.slug,
+      priority:
+        existing.priority !== undefined ? existing.priority : cat.priority,
+    };
+  }
+
+  for (const [key, value] of Object.entries(stored)) {
+    if (key === "main" || REMOVED_CATEGORY_SLUGS.has(key) || categories[key]) {
+      continue;
+    }
+    if (!value?.name) continue;
+    categories[key] = {
+      name: String(value.name).trim(),
+      image: value.image ?? null,
+      description: value.description ?? null,
+      slug: value.slug || key,
+      priority: value.priority !== undefined ? value.priority : 999,
+    };
+  }
+
+  const hasRemoved = Object.keys(stored).some((key) =>
+    REMOVED_CATEGORY_SLUGS.has(key)
+  );
+  if (hasRemoved) {
+    await saveCategories(categories);
+  }
+
   return categories;
 }
 
 // Helper function to save categories
-async function saveCategories(categories: Record<string, { name: string; image: string | null; description: string | null; slug: string; priority: number }>) {
+async function saveCategories(categories: Record<string, CategoryRecord>) {
   await writeFile(CATEGORIES_FILE, JSON.stringify(categories, null, 2));
 }
 
@@ -120,11 +169,19 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+
+      const normalizedSlug = slug.trim().toLowerCase();
+      if (REMOVED_CATEGORY_SLUGS.has(normalizedSlug)) {
+        return NextResponse.json(
+          { message: "Ця категорія вимкнена і не може бути створена" },
+          { status: 400 }
+        );
+      }
       
       const categories = await loadCategories();
       
       // Check if slug already exists
-      if (categories[slug]) {
+      if (categories[normalizedSlug]) {
         return NextResponse.json(
           { message: "Категорія з таким slug вже існує" },
           { status: 400 }
@@ -137,9 +194,9 @@ export async function POST(request: NextRequest) {
       const priority = formData.get("priority") as string | null;
       const priorityNum = priority ? parseInt(priority, 10) : maxPriority + 1;
       
-      categories[slug] = {
+      categories[normalizedSlug] = {
         name: name.trim(),
-        slug: slug.trim().toLowerCase(),
+        slug: normalizedSlug,
         image: null,
         description: description ? description.trim() : null,
         priority: !isNaN(priorityNum) ? priorityNum : maxPriority + 1,

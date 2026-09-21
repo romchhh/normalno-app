@@ -35,7 +35,18 @@ export const CATALOG_CATEGORIES: CatalogCategory[] = [
   },
 ];
 
+/** Permanently hidden from UI / API (legacy catalog tiles). */
+export const REMOVED_CATEGORY_SLUGS = new Set([
+  "new-car",
+  "commercial",
+  "trailers",
+]);
+
 export const validCategories = CATALOG_CATEGORIES.map((c) => c.slug);
+
+export function isActiveCategorySlug(slug: string): boolean {
+  return !REMOVED_CATEGORY_SLUGS.has(slug);
+}
 
 export const CATEGORY_NAMES: Record<string, string> = Object.fromEntries(
   CATALOG_CATEGORIES.map((c) => [c.slug, c.name])

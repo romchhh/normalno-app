@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import ScrollToTop from "./ScrollToTop";
 import CategoryLinkCard from "./CategoryLinkCard";
+import { isActiveCategorySlug } from "@/lib/categories";
 
 interface Category {
   name: string;
@@ -94,9 +95,14 @@ export default function Catalog() {
     trackVisit();
   }, []);
 
-  // Filter out "main" category and get only categories with names, sorted by priority
+  // Hide permanently removed categories (Нові авто / Комерційні / Причепи)
   const displayCategories = Object.keys(categories)
-    .filter((key) => key !== "main" && categories[key]?.name)
+    .filter(
+      (key) =>
+        key !== "main" &&
+        isActiveCategorySlug(key) &&
+        categories[key]?.name
+    )
     .map((key) => ({
       key,
       ...categories[key],
