@@ -1,6 +1,7 @@
 import { CATALOG_CATEGORIES } from "@/lib/categories";
 import type { CarFormValues } from "@/lib/car-form";
 import { calcPaymentScheduleFromPriceUsd } from "@/lib/car-status";
+import { convertUSDToUAH } from "@/lib/currency-converter";
 import { DEFAULT_LEASING_PARAMS } from "@/lib/wizard/leasing";
 import type { TelegramParsedCar, TelegramPostPreview } from "@/lib/telegram-post-import";
 
@@ -75,7 +76,17 @@ export function telegramPreviewToFormValues(
     : preview.photo || "";
   const priceUsd = parsed.priceUSD || String(parsed.price || "");
   const priceNum = parseFloat(String(priceUsd).replace(/[^\d.]/g, "")) || 0;
-  const payments = calcPayments(priceNum);
+  const fallbackPayments = calcPayments(priceNum);
+
+  // Channel posts store payments in USD; admin/DB expects UAH
+  const monthlyFromPost =
+    parsed.monthlyPayment != null && parsed.monthlyPayment > 0
+      ? String(convertUSDToUAH(parsed.monthlyPayment))
+      : "";
+  const advanceFromPost =
+    parsed.advancePayment != null && parsed.advancePayment > 0
+      ? String(convertUSDToUAH(parsed.advancePayment))
+      : "";
 
   const values: Partial<CarFormValues> = {
     title: parsed.title,
@@ -89,8 +100,8 @@ export function telegramPreviewToFormValues(
     bodyType: parsed.bodyType || "",
     category: mapCategory(parsed.category || ""),
     priceUSD: priceNum ? String(priceNum) : priceUsd,
-    monthlyPayment: payments.monthlyPayment,
-    advancePayment: payments.advancePayment,
+    monthlyPayment: monthlyFromPost || fallbackPayments.monthlyPayment,
+    advancePayment: advanceFromPost || fallbackPayments.advancePayment,
     description: parsed.description || "",
     photo: photos,
     status: "available",

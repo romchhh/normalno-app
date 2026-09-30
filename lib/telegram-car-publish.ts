@@ -4,12 +4,13 @@ import { MediaGroupBuilder, InlineKeyboardBuilder } from "node-telegram-bot-api"
 import { fromPath } from "node-telegram-bot-api/node";
 import { prisma } from "@/lib/db";
 import { BRAND_NAME, BRAND_URL } from "@/lib/brand";
-import { convertUAHToUSD } from "@/lib/currency-converter";
+import { paymentToUsd } from "@/lib/currency-converter";
 import { resolveCarUploadDir } from "@/lib/project-root";
 import { readAppSettings } from "@/lib/app-settings";
 import { getApi, isTelegramBotConfigured } from "@/lib/telegram-bot";
 import { getCarTelegramDeepLink } from "@/lib/telegram-car-links";
 import { verifyBotChannelRights } from "@/lib/telegram-channel-rights";
+import { truncateTelegramHtml } from "@/lib/telegram-html";
 
 type CarForPublish = {
   id: number;
@@ -124,6 +125,43 @@ function carDisplayTitle(car: CarForPublish): string {
   return car.title.trim() || composed || "Авто";
 }
 
+function appendPriceLines(lines: string[], car: CarForPublish) {
+  const priceNum =
+    parseFloat(String(car.priceUSD || "").replace(/\s+/g, "").replace(",", ".")) ||
+    0;
+  const monthlyUsd = paymentToUsd(car.monthlyPayment, "monthly", priceNum);
+  const advanceUsd = paymentToUsd(car.advancePayment, "advance", priceNum);
+
+  if (monthlyUsd > 0) {
+    lines.push(
+      `💵 Щомісячний платіж — <b>${formatUsdAmount(monthlyUsd)} $/міс</b>`
+    );
+  }
+  if (advanceUsd > 0) {
+    lines.push(
+      `Авансовий внесок — <b>${formatUsdAmount(advanceUsd)} $</b>`
+    );
+  }
+  if (priceNum > 0) {
+    lines.push(`Ціна — <b>${formatUsdAmount(priceNum)} $</b>`);
+  }
+}
+
+function carCtaLink(carId: number): string {
+  return `<a href="${escapeHtml(getCarTelegramDeepLink(carId))}">ОНОВИТИ АВТО 🚙</a>`;
+}
+
+/** Short caption for photo/album — always well under Telegram's 1024 limit. */
+export function formatCarChannelCaption(car: CarForPublish): string {
+  const lines: string[] = [];
+  lines.push(`🚘 <b>${escapeHtml(carDisplayTitle(car))}</b>`);
+  lines.push("");
+  appendPriceLines(lines, car);
+  lines.push("");
+  lines.push(carCtaLink(car.id));
+  return lines.join("\n");
+}
+
 export function formatCarChannelPost(car: CarForPublish): string {
   const lines: string[] = [];
   lines.push(`🚘 <b>${escapeHtml(carDisplayTitle(car))}</b>`);
@@ -131,35 +169,16 @@ export function formatCarChannelPost(car: CarForPublish): string {
 
   if (car.year) lines.push(`📆 Рік: ${car.year}`);
   const engine = formatEngine(car);
-  if (engine) lines.push(`🛠 Двигун: ${engine}`);
+  if (engine) lines.push(`🛠 Двигун: ${escapeHtml(engine)}`);
   const gearbox = formatTransmission(car.transmission);
-  if (gearbox) lines.push(`🕹 Коробка: ${gearbox}`);
+  if (gearbox) lines.push(`🕹 Коробка: ${escapeHtml(gearbox)}`);
   const drive = formatDrive(car.driveType);
-  if (drive) lines.push(`🛞 Привід: ${drive}`);
+  if (drive) lines.push(`🛞 Привід: ${escapeHtml(drive)}`);
   const mileage = formatMileage(car.mileage);
-  if (mileage) lines.push(`🛣 Пробіг: ${mileage}`);
+  if (mileage) lines.push(`🛣 Пробіг: ${escapeHtml(mileage)}`);
 
   lines.push("");
-
-  const monthlyUsd = car.monthlyPayment
-    ? convertUAHToUSD(car.monthlyPayment)
-    : 0;
-  const advanceUsd = car.advancePayment
-    ? convertUAHToUSD(car.advancePayment)
-    : 0;
-  const priceNum =
-    parseFloat(String(car.priceUSD || "").replace(/\s+/g, "").replace(",", ".")) ||
-    0;
-
-  if (monthlyUsd > 0) {
-    lines.push(`💵 Щомісячний платіж — <b>${formatUsdAmount(monthlyUsd)} $/міс</b>`);
-  }
-  if (advanceUsd > 0) {
-    lines.push(`Авансовий внесок — <b>${formatUsdAmount(advanceUsd)} $</b>`);
-  }
-  if (priceNum > 0) {
-    lines.push(`Ціна — <b>${formatUsdAmount(priceNum)} $</b>`);
-  }
+  appendPriceLines(lines, car);
 
   const features = extractFeatures(car.description || car.text || "");
   if (features.length > 0) {
@@ -173,9 +192,7 @@ export function formatCarChannelPost(car: CarForPublish): string {
   lines.push("");
   lines.push("🚗 Запрошуємо на тест-драйв! 😉");
   lines.push("");
-  lines.push(
-    `<a href="${getCarTelegramDeepLink(car.id)}">ОНОВИТИ АВТО 🚙</a>`
-  );
+  lines.push(carCtaLink(car.id));
   lines.push("");
   lines.push(`<i>${escapeHtml(BRAND_NAME)}</i> · кредит чи лізинг — підберемо умови під вас`);
 
@@ -186,7 +203,28 @@ function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+const TELEGRAM_CAPTION_LIMIT = 1024;
+
+function captionForMedia(fullText: string, car: CarForPublish): {
+  caption: string;
+  sendFullFollowUp: boolean;
+} {
+  if (fullText.length <= TELEGRAM_CAPTION_LIMIT) {
+    return { caption: fullText, sendFullFollowUp: false };
+  }
+  // Prefer a dedicated short caption over risky mid-tag truncation
+  const short = formatCarChannelCaption(car);
+  if (short.length <= TELEGRAM_CAPTION_LIMIT) {
+    return { caption: short, sendFullFollowUp: true };
+  }
+  return {
+    caption: truncateTelegramHtml(short, TELEGRAM_CAPTION_LIMIT),
+    sendFullFollowUp: true,
+  };
 }
 
 function resolveLocalPhotoPath(photoUrl: string): string | null {
@@ -305,16 +343,16 @@ export async function publishCarToChannel(carId: number): Promise<PublishCarResu
       });
       messageIds.push(msg.message_id);
     } else if (photos.length === 1) {
-      const caption = text.length > 1024 ? `${text.slice(0, 1020)}…` : text;
+      const { caption, sendFullFollowUp } = captionForMedia(text, car);
       const msg = await api.sendPhoto({
         chat_id: chatId,
         photo: await fromPath(photos[0]!),
         caption,
         parse_mode: "HTML",
-        reply_markup: keyboard,
+        reply_markup: sendFullFollowUp ? undefined : keyboard,
       });
       messageIds.push(msg.message_id);
-      if (text.length > 1024) {
+      if (sendFullFollowUp) {
         const follow = await api.sendMessage({
           chat_id: chatId,
           text,
@@ -326,7 +364,7 @@ export async function publishCarToChannel(carId: number): Promise<PublishCarResu
       }
     } else {
       const group = new MediaGroupBuilder();
-      const caption = text.length > 1024 ? `${text.slice(0, 1020)}…` : text;
+      const { caption, sendFullFollowUp } = captionForMedia(text, car);
       for (let i = 0; i < photos.length; i++) {
         const media = await fromPath(photos[i]!);
         if (i === 0) {
@@ -341,10 +379,9 @@ export async function publishCarToChannel(carId: number): Promise<PublishCarResu
       });
       for (const msg of messages) messageIds.push(msg.message_id);
 
-      const followText =
-        text.length > 1024
-          ? text
-          : "👇 Деталі авто та умови кредиту / лізингу:";
+      const followText = sendFullFollowUp
+        ? text
+        : "👇 Деталі авто та умови кредиту / лізингу:";
       const follow = await api.sendMessage({
         chat_id: chatId,
         text: followText,

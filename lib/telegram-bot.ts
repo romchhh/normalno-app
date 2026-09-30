@@ -4,6 +4,7 @@ import { fromPath } from "node-telegram-bot-api/node";
 import { prisma } from "./db";
 import { BRAND_NAME, BRAND_URL } from "@/lib/brand";
 import { parseCarStartPayload } from "@/lib/telegram-car-links";
+import { truncateTelegramHtml } from "@/lib/telegram-html";
 
 const WEB_APP_URL = process.env.WEB_APP_URL || `${BRAND_URL}/wizard`;
 
@@ -291,7 +292,9 @@ export async function broadcastToAllUsers(params: {
     try {
       if (hasPhoto && params.photoPath) {
         const caption =
-          params.text.length > 1024 ? `${params.text.slice(0, 1020)}…` : params.text;
+          params.text.length > 1024
+            ? truncateTelegramHtml(params.text, 1024)
+            : params.text;
         const photo = await fromPath(params.photoPath);
         await api.sendPhoto({
           chat_id: Number(chatId),
