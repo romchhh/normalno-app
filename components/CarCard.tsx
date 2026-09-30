@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { formatPrice } from "@/lib/price-format";
-import { formatUahMoney } from "@/lib/car-form";
+import { formatPaymentMoney } from "@/lib/car-form";
 import { resolveCarPhotoUrl } from "@/lib/car-photo";
 import CarImage from "./CarImage";
 import FavoriteToggle from "./FavoriteToggle";
@@ -16,6 +16,7 @@ export type CarCardData = {
   year?: number | null;
   mileage?: number | null;
   monthlyPayment?: number | null;
+  paymentCurrency?: string | null;
   brand?: string | null;
   mark?: string | null;
 };
@@ -48,7 +49,9 @@ function CarCardBody({
 }) {
   const priceStr = String(car.priceUSD ?? "0");
   const hasPrice = priceStr && priceStr !== "0" && priceStr !== "0.00";
-  const monthly = formatUahMoney(car.monthlyPayment);
+  const monthly = formatPaymentMoney(car.monthlyPayment, car.paymentCurrency, {
+    perMonth: true,
+  });
   const meta = [
     car.year || null,
     car.mileage ? `${Number(car.mileage).toLocaleString("uk-UA")} км` : null,
@@ -106,7 +109,7 @@ function CarCardBody({
           {formatPrice(priceStr)}
         </p>
         {monthly ? (
-          <p className="text-sm text-brand font-semibold mt-0.5">від {monthly}/міс</p>
+          <p className="text-sm text-brand font-semibold mt-0.5">від {monthly}</p>
         ) : (
           <p className="text-sm mt-0.5 opacity-0">—</p>
         )}

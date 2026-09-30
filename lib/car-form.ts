@@ -1,3 +1,16 @@
+export type PaymentCurrency = "USD" | "UAH";
+
+export const PAYMENT_CURRENCIES: { id: PaymentCurrency; label: string; symbol: string }[] = [
+  { id: "USD", label: "Долари ($)", symbol: "$" },
+  { id: "UAH", label: "Гривні (₴)", symbol: "₴" },
+];
+
+export function normalizePaymentCurrency(
+  value: string | null | undefined
+): PaymentCurrency {
+  return String(value || "").toUpperCase() === "USD" ? "USD" : "UAH";
+}
+
 export type CarFormValues = {
   title: string;
   brand: string;
@@ -8,6 +21,7 @@ export type CarFormValues = {
   mileage: string;
   monthlyPayment: string;
   advancePayment: string;
+  paymentCurrency: PaymentCurrency;
   priceUSD: string;
   description: string;
   photo: string;
@@ -29,6 +43,7 @@ export const EMPTY_CAR_FORM: CarFormValues = {
   mileage: "",
   monthlyPayment: "",
   advancePayment: "",
+  paymentCurrency: "UAH",
   priceUSD: "",
   description: "",
   photo: "",
@@ -87,6 +102,9 @@ export function carToFormValues(car: Record<string, unknown>): CarFormValues {
       car.advancePayment != null && car.advancePayment !== ""
         ? String(car.advancePayment)
         : "",
+    paymentCurrency: normalizePaymentCurrency(
+      car.paymentCurrency != null ? String(car.paymentCurrency) : "UAH"
+    ),
     priceUSD: String(car.priceUSD ?? ""),
     description: String(car.description || car.text || ""),
     photo: String(car.photo ?? ""),
@@ -105,6 +123,7 @@ export function formValuesToPayload(values: CarFormValues, existingUid?: string)
   const advance = parseMoney(values.advancePayment);
   const description = values.description.trim();
   const partnerIdNum = parseInt(values.partnerId, 10);
+  const paymentCurrency = normalizePaymentCurrency(values.paymentCurrency);
 
   return {
     uid: existingUid || generateCarUid(),
@@ -117,6 +136,7 @@ export function formValuesToPayload(values: CarFormValues, existingUid?: string)
     mileage: parseInt(String(values.mileage).replace(/\D/g, ""), 10) || 0,
     monthlyPayment: monthly || null,
     advancePayment: advance || null,
+    paymentCurrency,
     priceUSD: String(price || values.priceUSD || "0"),
     price,
     description,
@@ -143,4 +163,17 @@ export function formValuesToPayload(values: CarFormValues, existingUid?: string)
 export function formatUahMoney(amount: number | null | undefined): string | null {
   if (amount == null || !Number.isFinite(amount) || amount <= 0) return null;
   return `${Math.round(amount).toLocaleString("uk-UA")} ₴`;
+}
+
+export function formatPaymentMoney(
+  amount: number | null | undefined,
+  currency: string | null | undefined,
+  opts?: { perMonth?: boolean }
+): string | null {
+  if (amount == null || !Number.isFinite(amount) || amount <= 0) return null;
+  const cur = normalizePaymentCurrency(currency);
+  const formatted = Math.round(amount).toLocaleString("uk-UA");
+  const suffix = opts?.perMonth ? "/міс" : "";
+  if (cur === "USD") return `${formatted} $${suffix}`;
+  return `${formatted} ₴${suffix}`;
 }

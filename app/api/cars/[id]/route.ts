@@ -59,6 +59,8 @@ export async function PUT(
         price,
         monthlyPayment: monthlyPayment || null,
         advancePayment: advancePayment || null,
+        paymentCurrency:
+          String(data.paymentCurrency || "").toUpperCase() === "USD" ? "USD" : "UAH",
         status: data.status || "available",
         bodyType: data.bodyType?.trim() ? String(data.bodyType).trim() : null,
         driveType: String(data.driveType || "").trim(),

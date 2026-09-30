@@ -46,6 +46,7 @@ export default async function HomePage({ page = 1 }: HomePageProps) {
     year: true,
     mileage: true,
     monthlyPayment: true,
+    paymentCurrency: true,
   } as const;
 
   let totalCars = 0;
@@ -61,6 +62,7 @@ export default async function HomePage({ page = 1 }: HomePageProps) {
     year: number;
     mileage: number;
     monthlyPayment: number | null;
+    paymentCurrency: string;
   }> = [];
   let filterCars: Array<{ brand: string; mark: string }> = [];
 

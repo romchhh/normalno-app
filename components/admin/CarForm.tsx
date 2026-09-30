@@ -6,7 +6,9 @@ import {
   ENGINE_OPTIONS,
   TRANSMISSION_OPTIONS,
   EMPTY_CAR_FORM,
+  PAYMENT_CURRENCIES,
   parseMoney,
+  type PaymentCurrency,
 } from "@/lib/car-form";
 import { resolveCarPhotoUrl } from "@/lib/car-photo";
 import {
@@ -16,6 +18,7 @@ import {
   calcPaymentScheduleFromPriceUsd,
   type PaymentScheduleItem,
 } from "@/lib/car-status";
+import { convertUAHToUSD } from "@/lib/currency-converter";
 import { DEFAULT_LEASING_PARAMS } from "@/lib/wizard/leasing";
 
 type BrandModel = {
@@ -50,17 +53,23 @@ export default function CarForm({ initial, submitLabel, onSubmit }: CarFormProps
     setValues({ ...EMPTY_CAR_FORM, ...initial });
   }, [initial]);
 
-  const applyAutoPayments = (priceRaw?: string) => {
+  const applyAutoPayments = (priceRaw?: string, currency?: PaymentCurrency) => {
     const price = parseMoney(priceRaw ?? values.priceUSD);
     const next = calcPaymentScheduleFromPriceUsd(price, DEFAULT_LEASING_PARAMS);
     setSchedule(next);
     const m36 = next.find((x) => x.termMonths === 36);
     if (m36) {
+      const cur = currency ?? values.paymentCurrency;
+      const monthly =
+        cur === "USD" ? Math.round(convertUAHToUSD(m36.monthlyUah)) : m36.monthlyUah;
+      const advance =
+        cur === "USD" ? Math.round(convertUAHToUSD(m36.advanceUah)) : m36.advanceUah;
       setValues((prev) => ({
         ...prev,
         priceUSD: priceRaw ?? prev.priceUSD,
-        monthlyPayment: String(m36.monthlyUah),
-        advancePayment: String(m36.advanceUah),
+        paymentCurrency: cur,
+        monthlyPayment: String(monthly),
+        advancePayment: String(advance),
       }));
     }
   };
@@ -146,14 +155,34 @@ export default function CarForm({ initial, submitLabel, onSubmit }: CarFormProps
       setSchedule(next);
       const m36 = next.find((x) => x.termMonths === 36);
       if (m36) {
-        setValues((prev) => ({
-          ...prev,
-          priceUSD: raw,
-          monthlyPayment: String(m36.monthlyUah),
-          advancePayment: String(m36.advanceUah),
-        }));
+        setValues((prev) => {
+          const cur = prev.paymentCurrency;
+          const monthly =
+            cur === "USD"
+              ? Math.round(convertUAHToUSD(m36.monthlyUah))
+              : m36.monthlyUah;
+          const advance =
+            cur === "USD"
+              ? Math.round(convertUAHToUSD(m36.advanceUah))
+              : m36.advanceUah;
+          return {
+            ...prev,
+            priceUSD: raw,
+            monthlyPayment: String(monthly),
+            advancePayment: String(advance),
+          };
+        });
       }
     }
+  };
+
+  const handlePaymentCurrencyChange = (cur: PaymentCurrency) => {
+    const price = parseMoney(values.priceUSD);
+    if (price > 0) {
+      applyAutoPayments(values.priceUSD, cur);
+      return;
+    }
+    setField("paymentCurrency", cur);
   };
 
   const addPhoto = () => {
@@ -465,7 +494,7 @@ export default function CarForm({ initial, submitLabel, onSubmit }: CarFormProps
           <div>
             <h3 className="font-bold text-base">Ціна і фінансування</h3>
             <p className="text-xs text-muted mt-1">
-              Платежі 24 / 36 / 48 рахуються з ціни ($) за лізинговою моделлю
+              Оберіть валюту платежів — так вони зʼявляться на сайті і в Telegram
             </p>
           </div>
           <button
@@ -486,45 +515,85 @@ export default function CarForm({ initial, submitLabel, onSubmit }: CarFormProps
             placeholder="18500"
           />
         </div>
-        {schedule.length > 0 && (
-          <div className="grid grid-cols-3 gap-2">
-            {schedule.map((item) => (
-              <div
-                key={item.termMonths}
-                className={`rounded-xl border p-3 text-center ${
-                  item.termMonths === 36 ? "border-brand bg-brand-light/40" : "border-border"
+        <div>
+          <label className="block text-sm font-semibold mb-2">Валюта платежів</label>
+          <div className="flex gap-2">
+            {PAYMENT_CURRENCIES.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => handlePaymentCurrencyChange(c.id)}
+                className={`flex-1 admin-btn text-sm ${
+                  values.paymentCurrency === c.id
+                    ? "admin-btn-primary"
+                    : "admin-btn-secondary"
                 }`}
               >
-                <p className="text-xs text-muted mb-1">{item.termMonths} міс</p>
-                <p className="text-sm font-bold">
-                  {item.monthlyUah.toLocaleString("uk-UA")} ₴
-                </p>
-                <p className="text-[10px] text-muted mt-1">
-                  аванс {Math.round(item.advanceUah / 1000)}k
-                </p>
-              </div>
+                {c.label}
+              </button>
             ))}
+          </div>
+        </div>
+        {schedule.length > 0 && (
+          <div className="grid grid-cols-3 gap-2">
+            {schedule.map((item) => {
+              const monthly =
+                values.paymentCurrency === "USD"
+                  ? Math.round(convertUAHToUSD(item.monthlyUah))
+                  : item.monthlyUah;
+              const advance =
+                values.paymentCurrency === "USD"
+                  ? Math.round(convertUAHToUSD(item.advanceUah))
+                  : item.advanceUah;
+              const symbol = values.paymentCurrency === "USD" ? "$" : "₴";
+              return (
+                <div
+                  key={item.termMonths}
+                  className={`rounded-xl border p-3 text-center ${
+                    item.termMonths === 36
+                      ? "border-brand bg-brand-light/40"
+                      : "border-border"
+                  }`}
+                >
+                  <p className="text-xs text-muted mb-1">{item.termMonths} міс</p>
+                  <p className="text-sm font-bold">
+                    {monthly.toLocaleString("uk-UA")} {symbol}
+                  </p>
+                  <p className="text-[10px] text-muted mt-1">
+                    аванс{" "}
+                    {values.paymentCurrency === "USD"
+                      ? `${advance.toLocaleString("uk-UA")} $`
+                      : `${Math.round(advance / 1000)}k ₴`}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-semibold mb-2">Щомісячний платіж, ₴ (36 міс)</label>
+            <label className="block text-sm font-semibold mb-2">
+              Щомісячний платіж, {values.paymentCurrency === "USD" ? "$" : "₴"}{" "}
+              (36 міс)
+            </label>
             <input
               className="admin-input"
               inputMode="decimal"
               value={values.monthlyPayment}
               onChange={(e) => setField("monthlyPayment", e.target.value)}
-              placeholder="18000"
+              placeholder={values.paymentCurrency === "USD" ? "600" : "18000"}
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold mb-2">Авансовий внесок, ₴</label>
+            <label className="block text-sm font-semibold mb-2">
+              Авансовий внесок, {values.paymentCurrency === "USD" ? "$" : "₴"}
+            </label>
             <input
               className="admin-input"
               inputMode="decimal"
               value={values.advancePayment}
               onChange={(e) => setField("advancePayment", e.target.value)}
-              placeholder="200000"
+              placeholder={values.paymentCurrency === "USD" ? "5000" : "200000"}
             />
           </div>
         </div>

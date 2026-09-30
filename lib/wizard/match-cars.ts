@@ -61,6 +61,7 @@ export async function matchCars(params: {
       mileage: true,
       priceUSD: true,
       monthlyPayment: true,
+      paymentCurrency: true,
       category: true,
       engineType: true,
       status: true,
@@ -104,9 +105,12 @@ export async function matchCars(params: {
   return filtered.slice(0, limit).map((car) => {
     const priceUah = convertUSDToUAH(car.price);
     const scenario = calcLeasingScenario(priceUah, termMonths, "optimal", leasingParams);
+    const rawMonthly = car.monthlyPayment && car.monthlyPayment > 0 ? car.monthlyPayment : 0;
     const monthlyPaymentUah =
-      car.monthlyPayment && car.monthlyPayment > 0
-        ? car.monthlyPayment
+      rawMonthly > 0
+        ? String(car.paymentCurrency || "").toUpperCase() === "USD"
+          ? convertUSDToUAH(rawMonthly)
+          : rawMonthly
         : scenario.totalPaymentFirstYearUah;
     return {
       id: car.id,

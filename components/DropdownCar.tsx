@@ -1,6 +1,6 @@
 "use client";
 
-import { formatUahMoney } from "@/lib/car-form";
+import { formatPaymentMoney } from "@/lib/car-form";
 
 type CarSpecs = {
   brand?: string | null;
@@ -11,6 +11,7 @@ type CarSpecs = {
   mileage?: number | null;
   monthlyPayment?: number | null;
   advancePayment?: number | null;
+  paymentCurrency?: string | null;
   category?: string | null;
 };
 
@@ -27,11 +28,13 @@ export default function DropdownCar({ car }: { car: CarSpecs }) {
     },
     {
       label: "Щомісячний платіж",
-      value: formatUahMoney(car.monthlyPayment),
+      value: formatPaymentMoney(car.monthlyPayment, car.paymentCurrency, {
+        perMonth: true,
+      }),
     },
     {
       label: "Авансовий внесок",
-      value: formatUahMoney(car.advancePayment),
+      value: formatPaymentMoney(car.advancePayment, car.paymentCurrency),
     },
     { label: "Категорія", value: car.category },
   ].filter((field) => field.value);

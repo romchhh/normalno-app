@@ -77,6 +77,8 @@ export async function POST(request: NextRequest) {
         price,
         monthlyPayment: monthlyPayment || null,
         advancePayment: advancePayment || null,
+        paymentCurrency:
+          String(data.paymentCurrency || "").toUpperCase() === "USD" ? "USD" : "UAH",
         sku: String(data.sku || ""),
         quantity: parseInt(data.quantity, 10) || 1,
         engineVolume: parseFloat(data.engineVolume) || 0,

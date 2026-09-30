@@ -1,6 +1,6 @@
 import { SOCIAL_LINKS } from "@/lib/brand";
 import { prisma } from "@/lib/db";
-import { formatUahMoney } from "@/lib/car-form";
+import { formatPaymentMoney } from "@/lib/car-form";
 import Link from "next/link";
 import ImageCarousel from "@/components/ImageCarousel";
 import DropdownCar from "@/components/DropdownCar";
@@ -55,8 +55,10 @@ export default async function CarPage({ params }: CarPageProps) {
   }
 
   const photos = resolveCarPhotos(car.photo);
-  const monthly = formatUahMoney(car.monthlyPayment);
-  const advance = formatUahMoney(car.advancePayment);
+  const monthly = formatPaymentMoney(car.monthlyPayment, car.paymentCurrency, {
+    perMonth: true,
+  });
+  const advance = formatPaymentMoney(car.advancePayment, car.paymentCurrency);
   const videoEmbed = car.video ? youtubeEmbed(car.video) : null;
   const description = car.description || car.text;
 
@@ -72,6 +74,7 @@ export default async function CarPage({ params }: CarPageProps) {
       year: true,
       mileage: true,
       monthlyPayment: true,
+      paymentCurrency: true,
     },
   });
 

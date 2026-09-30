@@ -165,6 +165,7 @@ def upsert_car(
     price_usd: str,
     monthly_payment: Optional[float],
     advance_payment: Optional[float],
+    payment_currency: str = "USD",
     engine_type: str,
     transmission: str,
     drive_type: str,
@@ -199,6 +200,7 @@ def upsert_car(
                   "priceUSD" = ?,
                   "monthlyPayment" = ?,
                   "advancePayment" = ?,
+                  "paymentCurrency" = ?,
                   "engineType" = ?,
                   "transmission" = ?,
                   "driveType" = ?,
@@ -222,6 +224,7 @@ def upsert_car(
                     price_usd,
                     monthly_payment,
                     advance_payment,
+                    payment_currency,
                     engine_type,
                     transmission,
                     drive_type,
@@ -244,14 +247,14 @@ def upsert_car(
               "uid", "brand", "sku", "mark", "category", "title", "description", "text",
               "photo", "price", "quantity", "externalId", "status", "bodyType",
               "engineType", "engineVolume", "transmission", "driveType", "year",
-              "enginePower", "priceUSD", "monthlyPayment", "advancePayment",
+              "enginePower", "priceUSD", "monthlyPayment", "advancePayment", "paymentCurrency",
               "countryOfOrigin", "mileage", "weight", "length", "width", "height",
               "createdAt", "updatedAt"
             ) VALUES (
               ?, ?, '', ?, ?, ?, ?, ?,
               ?, ?, 1, ?, 'available', ?,
               ?, 0, ?, ?, ?,
-              ?, ?, ?, ?,
+              ?, ?, ?, ?, ?,
               '', ?, 0, 0, 0, 0,
               ?, ?
             )
@@ -276,6 +279,7 @@ def upsert_car(
                 price_usd,
                 monthly_payment,
                 advance_payment,
+                payment_currency,
                 mileage,
                 now,
                 now,

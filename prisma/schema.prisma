@@ -41,6 +41,8 @@ model Car {
   priceUSD           String  @default("0")
   monthlyPayment     Float?
   advancePayment     Float?
+  /// Currency of monthlyPayment / advancePayment: "USD" | "UAH"
+  paymentCurrency    String  @default("UAH")
   countryOfOrigin    String  @default("")
   mileage            Int     @default(0)
   weight             Float   @default(0)

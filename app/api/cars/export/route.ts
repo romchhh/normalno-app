@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     priceUSD: car.priceUSD,
     monthlyPayment: car.monthlyPayment,
     advancePayment: car.advancePayment,
+    paymentCurrency: car.paymentCurrency,
     status: statusLabel(car.status),
     statusId: car.status,
     bodyType: car.bodyType || "",

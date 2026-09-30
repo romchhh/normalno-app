@@ -4,7 +4,7 @@ import { MediaGroupBuilder, InlineKeyboardBuilder } from "node-telegram-bot-api"
 import { fromPath } from "node-telegram-bot-api/node";
 import { prisma } from "@/lib/db";
 import { BRAND_NAME, BRAND_URL } from "@/lib/brand";
-import { paymentToUsd } from "@/lib/currency-converter";
+import { normalizePaymentCurrency } from "@/lib/car-form";
 import { resolveCarUploadDir } from "@/lib/project-root";
 import { readAppSettings } from "@/lib/app-settings";
 import { getApi, isTelegramBotConfigured } from "@/lib/telegram-bot";
@@ -26,6 +26,7 @@ type CarForPublish = {
   priceUSD: string;
   monthlyPayment: number | null;
   advancePayment: number | null;
+  paymentCurrency: string;
   description: string;
   text: string;
   photo: string | null;
@@ -129,18 +130,28 @@ function appendPriceLines(lines: string[], car: CarForPublish) {
   const priceNum =
     parseFloat(String(car.priceUSD || "").replace(/\s+/g, "").replace(",", ".")) ||
     0;
-  const monthlyUsd = paymentToUsd(car.monthlyPayment, "monthly", priceNum);
-  const advanceUsd = paymentToUsd(car.advancePayment, "advance", priceNum);
+  const currency = normalizePaymentCurrency(car.paymentCurrency);
+  const monthly = car.monthlyPayment && car.monthlyPayment > 0 ? car.monthlyPayment : 0;
+  const advance = car.advancePayment && car.advancePayment > 0 ? car.advancePayment : 0;
 
-  if (monthlyUsd > 0) {
-    lines.push(
-      `💵 Щомісячний платіж — <b>${formatUsdAmount(monthlyUsd)} $/міс</b>`
-    );
+  // Publish amounts exactly as admin entered them, in the chosen currency
+  if (monthly > 0) {
+    if (currency === "USD") {
+      lines.push(
+        `💵 Щомісячний платіж — <b>${formatUsdAmount(monthly)} $/міс</b>`
+      );
+    } else {
+      lines.push(
+        `💵 Щомісячний платіж — <b>${formatUsdAmount(monthly)} ₴/міс</b>`
+      );
+    }
   }
-  if (advanceUsd > 0) {
-    lines.push(
-      `Авансовий внесок — <b>${formatUsdAmount(advanceUsd)} $</b>`
-    );
+  if (advance > 0) {
+    if (currency === "USD") {
+      lines.push(`Авансовий внесок — <b>${formatUsdAmount(advance)} $</b>`);
+    } else {
+      lines.push(`Авансовий внесок — <b>${formatUsdAmount(advance)} ₴</b>`);
+    }
   }
   if (priceNum > 0) {
     lines.push(`Ціна — <b>${formatUsdAmount(priceNum)} $</b>`);

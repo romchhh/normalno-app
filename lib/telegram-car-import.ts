@@ -1,9 +1,9 @@
 import { CATALOG_CATEGORIES } from "@/lib/categories";
 import type { CarFormValues } from "@/lib/car-form";
 import { calcPaymentScheduleFromPriceUsd } from "@/lib/car-status";
-import { convertUSDToUAH } from "@/lib/currency-converter";
+import { convertUAHToUSD } from "@/lib/currency-converter";
 import { DEFAULT_LEASING_PARAMS } from "@/lib/wizard/leasing";
-import type { TelegramParsedCar, TelegramPostPreview } from "@/lib/telegram-post-import";
+import type { TelegramPostPreview } from "@/lib/telegram-post-import";
 
 const DRIVE_MAP: Record<string, string> = {
   Повний: "AWD",
@@ -42,7 +42,7 @@ function mapDriveType(raw: string): string {
   return raw;
 }
 
-function calcPayments(priceUsd: number) {
+function calcPayments(priceUsd: number, currency: "USD" | "UAH") {
   if (!priceUsd || priceUsd <= 0) {
     return { monthlyPayment: "", advancePayment: "" };
   }
@@ -51,9 +51,13 @@ function calcPayments(priceUsd: number) {
   if (!m36) {
     return { monthlyPayment: "", advancePayment: "" };
   }
+  const monthly =
+    currency === "USD" ? Math.round(convertUAHToUSD(m36.monthlyUah)) : m36.monthlyUah;
+  const advance =
+    currency === "USD" ? Math.round(convertUAHToUSD(m36.advanceUah)) : m36.advanceUah;
   return {
-    monthlyPayment: String(m36.monthlyUah),
-    advancePayment: String(m36.advanceUah),
+    monthlyPayment: String(monthly),
+    advancePayment: String(advance),
   };
 }
 
@@ -76,16 +80,17 @@ export function telegramPreviewToFormValues(
     : preview.photo || "";
   const priceUsd = parsed.priceUSD || String(parsed.price || "");
   const priceNum = parseFloat(String(priceUsd).replace(/[^\d.]/g, "")) || 0;
-  const fallbackPayments = calcPayments(priceNum);
+  // Channel posts are in USD — keep amounts as entered
+  const paymentCurrency = "USD" as const;
+  const fallbackPayments = calcPayments(priceNum, paymentCurrency);
 
-  // Channel posts store payments in USD; admin/DB expects UAH
   const monthlyFromPost =
     parsed.monthlyPayment != null && parsed.monthlyPayment > 0
-      ? String(convertUSDToUAH(parsed.monthlyPayment))
+      ? String(Math.round(parsed.monthlyPayment))
       : "";
   const advanceFromPost =
     parsed.advancePayment != null && parsed.advancePayment > 0
-      ? String(convertUSDToUAH(parsed.advancePayment))
+      ? String(Math.round(parsed.advancePayment))
       : "";
 
   const values: Partial<CarFormValues> = {
@@ -100,6 +105,7 @@ export function telegramPreviewToFormValues(
     bodyType: parsed.bodyType || "",
     category: mapCategory(parsed.category || ""),
     priceUSD: priceNum ? String(priceNum) : priceUsd,
+    paymentCurrency,
     monthlyPayment: monthlyFromPost || fallbackPayments.monthlyPayment,
     advancePayment: advanceFromPost || fallbackPayments.advancePayment,
     description: parsed.description || "",

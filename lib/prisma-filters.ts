@@ -9,6 +9,7 @@ export type CarSearchResult = {
   year: number;
   mileage: number;
   monthlyPayment: number | null;
+  paymentCurrency: string;
 };
 
 const carSearchSelect = {
@@ -20,6 +21,7 @@ const carSearchSelect = {
   year: true,
   mileage: true,
   monthlyPayment: true,
+  paymentCurrency: true,
 } as const;
 
 /** SQLite does not support Prisma `mode: "insensitive"`. */
@@ -38,7 +40,7 @@ export async function searchCarsByTitle(
   const pattern = `%${trimmed}%`;
 
   return prisma.$queryRaw<CarSearchResult[]>`
-    SELECT id, title, photo, category, "priceUSD", year, mileage, "monthlyPayment"
+    SELECT id, title, photo, category, "priceUSD", year, mileage, "monthlyPayment", "paymentCurrency"
     FROM "Car"
     WHERE lower(title) LIKE lower(${pattern})
     ORDER BY "createdAt" DESC

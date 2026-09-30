@@ -33,6 +33,7 @@ export async function GET(
           year: true,
           mileage: true,
           monthlyPayment: true,
+          paymentCurrency: true,
           brand: true,
           mark: true,
           status: true,

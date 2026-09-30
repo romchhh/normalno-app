@@ -160,6 +160,7 @@ export default async function Category({
     year: number;
     mileage: number;
     monthlyPayment: number | null;
+    paymentCurrency: string;
   }> = [];
   let totalCars = 0;
   try {
@@ -177,6 +178,7 @@ export default async function Category({
         year: true,
         mileage: true,
         monthlyPayment: true,
+        paymentCurrency: true,
       },
     });
 

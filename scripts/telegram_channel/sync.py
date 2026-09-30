@@ -19,22 +19,6 @@ if str(SCRIPT_DIR) not in sys.path:
 SETUP_CMD = "npm run tg-sync:setup"
 
 
-def usd_to_uah_rate() -> float:
-    raw = os.environ.get("USD_TO_UAH_RATE", "41").strip()
-    try:
-        rate = float(raw)
-        return rate if rate > 0 else 41.0
-    except ValueError:
-        return 41.0
-
-
-def payment_usd_to_uah(amount: float | None) -> float | None:
-    """Channel captions use USD; Car.monthlyPayment / advancePayment are UAH in the app."""
-    if amount is None or amount <= 0:
-        return None
-    return round(amount * usd_to_uah_rate())
-
-
 def load_env_file(path: Path) -> None:
     if not path.is_file():
         return
@@ -359,8 +343,9 @@ async def sync_channel(args: argparse.Namespace) -> dict:
                     mileage=parsed.mileage,
                     price=parsed.price,
                     price_usd=parsed.priceUSD,
-                    monthly_payment=payment_usd_to_uah(parsed.monthlyPayment),
-                    advance_payment=payment_usd_to_uah(parsed.advancePayment),
+                    monthly_payment=parsed.monthlyPayment,
+                    advance_payment=parsed.advancePayment,
+                    payment_currency="USD",
                     engine_type=parsed.engineType,
                     transmission=parsed.transmission,
                     drive_type=parsed.driveType,
