@@ -1,4 +1,4 @@
-import { prisma } from "./db";
+import { prisma, ensureCarSchema } from "./db";
 
 export type CarSearchResult = {
   id: number;
@@ -28,6 +28,7 @@ const carSearchSelect = {
 export async function searchCarsByTitle(
   query: string
 ): Promise<CarSearchResult[]> {
+  await ensureCarSchema();
   const trimmed = query.trim();
 
   if (!trimmed) {

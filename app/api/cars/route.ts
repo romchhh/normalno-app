@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { prisma, ensureCarSchema } from "@/lib/db";
 import { searchCarsByTitle } from "@/lib/prisma-filters";
 import { NextRequest, NextResponse } from "next/server";
 import { generateCarUid, parseMoney } from "@/lib/car-form";
@@ -6,6 +6,7 @@ import { canManageCars, requireAdmin } from "@/lib/admin-auth";
 import { revalidateCarPages } from "@/lib/revalidate-cars";
 
 export async function GET(request: NextRequest) {
+  await ensureCarSchema();
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q") || "";
   const cars = await searchCarsByTitle(query);
@@ -20,6 +21,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    await ensureCarSchema();
     const data = await request.json();
 
     if (!data.title?.trim()) {

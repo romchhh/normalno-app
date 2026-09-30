@@ -120,28 +120,27 @@ declare global {
 
 export default function TelegramWebApp() {
   useEffect(() => {
-    // Wait for Telegram Web App SDK to load
     const initTelegramWebApp = () => {
       if (typeof window !== "undefined" && window.Telegram?.WebApp) {
         const tg = window.Telegram.WebApp;
 
-        // Initialize Web App
         tg.ready();
 
-        // Expand to fullscreen immediately
         if (!tg.isExpanded) {
           tg.expand();
         }
 
-        // Set header and background colors to match site theme
-        tg.setHeaderColor("#ffffff");
-        tg.setBackgroundColor("#f9fafb");
+        // Header/background colors need Bot API 6.1+; older clients spam console
+        const version = parseFloat(String(tg.version || "6.0"));
+        if (Number.isFinite(version) && version >= 6.1) {
+          try {
+            tg.setHeaderColor("#ffffff");
+            tg.setBackgroundColor("#ffffff");
+          } catch {
+            // Unsupported on this client — ignore
+          }
+        }
 
-        // Enable closing confirmation (optional - prevents accidental closing)
-        // Uncomment if you want to prevent accidental closing
-        // tg.enableClosingConfirmation();
-
-        // Log Web App info (for debugging - remove in production)
         if (process.env.NODE_ENV === "development") {
           console.log("✅ Telegram Web App initialized:", {
             version: tg.version,
@@ -152,15 +151,13 @@ export default function TelegramWebApp() {
           });
         }
       } else {
-        // Retry if SDK not loaded yet
         setTimeout(initTelegramWebApp, 100);
       }
     };
 
-    // Start initialization
     initTelegramWebApp();
   }, []);
 
-  return null; // This component doesn't render anything
+  return null;
 }
 

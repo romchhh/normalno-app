@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { prisma, ensureCarSchema } from "@/lib/db";
 import { carMatchesBrandIds } from "@/lib/brands";
 import { isCarPubliclyListed } from "@/lib/car-status";
 import { convertUSDToUAH } from "@/lib/currency-converter";
@@ -38,6 +38,7 @@ export async function matchCars(params: {
   brands: string[];
   limit?: number;
 }): Promise<MatchedCar[]> {
+  await ensureCarSchema();
   const {
     maxBudget,
     termMonths,

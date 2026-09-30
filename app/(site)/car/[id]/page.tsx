@@ -1,5 +1,5 @@
 import { SOCIAL_LINKS } from "@/lib/brand";
-import { prisma } from "@/lib/db";
+import { prisma, ensureCarSchema } from "@/lib/db";
 import { formatPaymentMoney } from "@/lib/car-form";
 import Link from "next/link";
 import ImageCarousel from "@/components/ImageCarousel";
@@ -35,6 +35,7 @@ function youtubeEmbed(url: string): string | null {
 }
 
 export default async function CarPage({ params }: CarPageProps) {
+  await ensureCarSchema();
   const { id } = await params;
 
   const car = await prisma.car.findUnique({

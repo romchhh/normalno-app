@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma, ensureCarSchema } from "@/lib/db";
 import { parseMoney } from "@/lib/car-form";
 import { canManageCars, requireAdmin } from "@/lib/admin-auth";
 import { revalidateCarPages } from "@/lib/revalidate-cars";
@@ -9,6 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await ensureCarSchema();
     const carId = Number((await params).id);
     const car = await prisma.car.findUnique({ where: { id: carId } });
     if (!car) {
@@ -32,6 +33,7 @@ export async function PUT(
   }
 
   try {
+    await ensureCarSchema();
     const carId = Number((await params).id);
     const data = await req.json();
 

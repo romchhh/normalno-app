@@ -1,6 +1,7 @@
 "use client";
 
 import Image, { type ImageProps } from "next/image";
+import { useEffect, useState, type SyntheticEvent } from "react";
 import {
   canOptimizeCarPhoto,
   isExternalCarPhotoUrl,
@@ -11,10 +12,11 @@ type CarImageProps = Omit<ImageProps, "src"> & {
   src: string;
 };
 
+const FALLBACK_SRC = "/logo.svg";
+
 /**
  * Renders car photos from local uploads or any external host.
- * External URLs (postimg, imgbb, …) use a plain <img> so they are not
- * blocked by next/image remotePatterns / optimizer fetches.
+ * External URLs use a plain <img>; broken hosts (DNS fail) fall back to logo.
  */
 export default function CarImage({
   src,
@@ -30,9 +32,28 @@ export default function CarImage({
   onError,
   ...rest
 }: CarImageProps) {
-  const resolved = resolveCarPhotoUrl(src);
+  const resolved = resolveCarPhotoUrl(src) || FALLBACK_SRC;
+  const [currentSrc, setCurrentSrc] = useState(resolved);
+  const [failed, setFailed] = useState(false);
 
-  if (!canOptimizeCarPhoto(resolved) && isExternalCarPhotoUrl(resolved)) {
+  useEffect(() => {
+    setCurrentSrc(resolveCarPhotoUrl(src) || FALLBACK_SRC);
+    setFailed(false);
+  }, [src]);
+
+  const handleError = (event: SyntheticEvent<HTMLImageElement, Event>) => {
+    if (!failed && currentSrc !== FALLBACK_SRC) {
+      setFailed(true);
+      setCurrentSrc(FALLBACK_SRC);
+    }
+    onError?.(event);
+  };
+
+  if (
+    !failed &&
+    !canOptimizeCarPhoto(currentSrc) &&
+    isExternalCarPhotoUrl(currentSrc)
+  ) {
     const externalClassName = fill
       ? `absolute inset-0 h-full w-full ${className ?? ""}`.trim()
       : className;
@@ -40,7 +61,7 @@ export default function CarImage({
     return (
       // eslint-disable-next-line @next/next/no-img-element -- arbitrary admin photo hosts
       <img
-        src={resolved}
+        src={currentSrc}
         alt={alt}
         className={externalClassName}
         style={style}
@@ -50,14 +71,14 @@ export default function CarImage({
         draggable={draggable}
         referrerPolicy="no-referrer"
         onLoad={onLoad}
-        onError={onError}
+        onError={handleError}
       />
     );
   }
 
   return (
     <Image
-      src={resolved}
+      src={currentSrc}
       alt={alt}
       className={className}
       fill={fill}
@@ -67,7 +88,8 @@ export default function CarImage({
       loading={loading}
       draggable={draggable}
       onLoad={onLoad}
-      onError={onError}
+      onError={handleError}
+      unoptimized={failed || currentSrc === FALLBACK_SRC}
       {...rest}
     />
   );

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { prisma, ensureCarSchema } from "@/lib/db";
 import CategorySwiper from "./CategorySwiper";
 import HomeClient from "./HomeClient";
 import Banner from "./Banner";
@@ -30,6 +30,7 @@ type HomePageProps = {
 };
 
 export default async function HomePage({ page = 1 }: HomePageProps) {
+  await ensureCarSchema();
   const bannerTimestamp = await getBannerTimestamp();
   const currentPage = Math.max(1, page);
   const skip = (currentPage - 1) * PAGE_SIZE;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { prisma } from "@/lib/db";
+import { prisma, ensureCarSchema } from "@/lib/db";
 import { sqliteContains } from "@/lib/prisma-filters";
 import { CATEGORY_NAMES, REVERSE_CATEGORY_MAP } from "@/lib/categories";
 import CategoryClient from "./CategoryClient";
@@ -24,6 +24,7 @@ export default async function Category({
   page,
   filters = {},
 }: CategoryProps) {
+  await ensureCarSchema();
   const skip = (page - 1) * PAGE_SIZE;
 
   // Fetch all cars to get brands and models for filters
