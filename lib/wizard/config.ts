@@ -23,6 +23,7 @@ const DEFAULT_CONFIG: WizardConfig = {
   paymentStep: 1000,
   defaultMonthlyPayment: 18000,
   bitrixWebhookUrl: "",
+  bitrixLeadSourceId: "NORMALNO_CATALOG",
   leasing: {
     annualRate: 0.2725,
     optimalAdvance: 0.33,

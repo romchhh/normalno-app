@@ -1,4 +1,5 @@
 import { prisma, ensureCarSchema } from "@/lib/db";
+import { publicCarStatusWhere } from "@/lib/car-status";
 import CategorySwiper from "./CategorySwiper";
 import HomeClient from "./HomeClient";
 import Banner from "./Banner";
@@ -67,16 +68,20 @@ export default async function HomePage({ page = 1 }: HomePageProps) {
   }> = [];
   let filterCars: Array<{ brand: string; mark: string }> = [];
 
+  const publicWhere = publicCarStatusWhere();
+
   try {
     [totalCars, pageCars, filterCars] = await Promise.all([
-      prisma.car.count(),
+      prisma.car.count({ where: publicWhere }),
       prisma.car.findMany({
+        where: publicWhere,
         select: carSelect,
         orderBy: { createdAt: "desc" },
         skip,
         take: PAGE_SIZE,
       }),
       prisma.car.findMany({
+        where: publicWhere,
         select: { brand: true, mark: true },
       }),
     ]);
@@ -91,6 +96,7 @@ export default async function HomePage({ page = 1 }: HomePageProps) {
   if (safePage !== currentPage && totalCars > 0) {
     try {
       pageCars = await prisma.car.findMany({
+        where: publicWhere,
         select: carSelect,
         orderBy: { createdAt: "desc" },
         skip: (safePage - 1) * PAGE_SIZE,

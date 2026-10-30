@@ -7,6 +7,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const [telegramChatId, setTelegramChatId] = useState("");
   const [telegramPublishChannelId, setTelegramPublishChannelId] = useState("");
+  const [bitrixLeadSourceId, setBitrixLeadSourceId] = useState("NORMALNO_CATALOG");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -27,6 +28,7 @@ export default function SettingsPage() {
           const data = await res.json();
           setTelegramChatId(data.telegramChatId || "");
           setTelegramPublishChannelId(data.telegramPublishChannelId || "");
+          setBitrixLeadSourceId(data.bitrixLeadSourceId || "NORMALNO_CATALOG");
         }
       } catch {
         setError("Помилка завантаження налаштувань");
@@ -76,7 +78,11 @@ export default function SettingsPage() {
       const res = await fetch("/api/admin/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ telegramChatId, telegramPublishChannelId }),
+        body: JSON.stringify({
+          telegramChatId,
+          telegramPublishChannelId,
+          bitrixLeadSourceId,
+        }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -150,6 +156,20 @@ export default function SettingsPage() {
         </div>
 
         <div>
+          <label className="block text-sm font-semibold mb-2">Bitrix джерело лідів (SOURCE_ID)</label>
+          <input
+            className="admin-input"
+            value={bitrixLeadSourceId}
+            onChange={(e) => setBitrixLeadSourceId(e.target.value)}
+            placeholder="NORMALNO_CATALOG"
+          />
+          <p className="text-xs text-muted mt-2">
+            Код джерела з довідника Bitrix (crm.status, ENTITY_ID=SOURCE). Заявки з сайту
+            записуються в це джерело.
+          </p>
+        </div>
+
+        <div>
           <label className="block text-sm font-semibold mb-2">Канал для публікації авто</label>
           <div className="flex flex-col sm:flex-row gap-2">
             <input
@@ -196,8 +216,9 @@ export default function SettingsPage() {
         </p>
         <p>
           Логін адмінки — <code className="font-mono text-xs">ADMIN_USERNAME</code> /{" "}
-          <code className="font-mono text-xs">ADMIN_PASSWORD</code>. Bitrix —{" "}
-          <code className="font-mono text-xs">BITRIX_URL</code>.
+          <code className="font-mono text-xs">ADMIN_PASSWORD</code>. Bitrix webhook —{" "}
+          <code className="font-mono text-xs">BITRIX_URL</code>; джерело лідів — у
+          налаштуваннях вище.
         </p>
       </div>
     </div>

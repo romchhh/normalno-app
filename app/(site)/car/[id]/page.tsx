@@ -1,7 +1,10 @@
 import { SOCIAL_LINKS } from "@/lib/brand";
 import { prisma, ensureCarSchema } from "@/lib/db";
 import { formatPaymentMoney } from "@/lib/car-form";
-import Link from "next/link";
+import {
+  isCarPubliclyListed,
+  publicCarStatusWhere,
+} from "@/lib/car-status";
 import ImageCarousel from "@/components/ImageCarousel";
 import DropdownCar from "@/components/DropdownCar";
 import Order from "@/components/Order";
@@ -13,6 +16,7 @@ import CarViewTracker from "@/components/CarViewTracker";
 import ShareButton from "@/components/ShareButton";
 import CarBackButton from "@/components/CarBackButton";
 import { resolveCarPhotos } from "@/lib/car-photo";
+import { notFound } from "next/navigation";
 
 interface CarPageProps {
   params: Promise<{ id: string }>;
@@ -38,21 +42,13 @@ export default async function CarPage({ params }: CarPageProps) {
   await ensureCarSchema();
   const { id } = await params;
 
-  const car = await prisma.car.findUnique({
-    where: { id: parseInt(id) },
-  });
+  const carId = parseInt(id, 10);
+  const car = Number.isFinite(carId)
+    ? await prisma.car.findUnique({ where: { id: carId } })
+    : null;
 
-  if (!car) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-xl font-semibold mb-2">Авто не знайдено</p>
-          <Link href="/" className="text-muted hover:text-brand underline">
-            На головну
-          </Link>
-        </div>
-      </div>
-    );
+  if (!car || !isCarPubliclyListed(car.status)) {
+    notFound();
   }
 
   const photos = resolveCarPhotos(car.photo);
@@ -65,7 +61,9 @@ export default async function CarPage({ params }: CarPageProps) {
 
   const randomCars = await prisma.car.findMany({
     take: 4,
-    where: { id: { not: car.id } },
+    where: {
+      AND: [publicCarStatusWhere(), { id: { not: car.id } }],
+    },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma, ensureCarSchema } from "@/lib/db";
+import { publicCarStatusWhere } from "@/lib/car-status";
 import { sqliteContains } from "@/lib/prisma-filters";
 import { CATEGORY_NAMES, REVERSE_CATEGORY_MAP } from "@/lib/categories";
 import CategoryClient from "./CategoryClient";
@@ -27,10 +28,13 @@ export default async function Category({
   await ensureCarSchema();
   const skip = (page - 1) * PAGE_SIZE;
 
-  // Fetch all cars to get brands and models for filters
+  const publicWhere = publicCarStatusWhere();
+
+  // Fetch all public cars to get brands and models for filters
   let allCars: Array<{ brand: string; mark: string }> = [];
   try {
     allCars = await prisma.car.findMany({
+      where: publicWhere,
       select: {
         brand: true,
         mark: true,
@@ -79,76 +83,57 @@ export default async function Category({
     console.error("Error fetching category data:", err);
   }
 
-  // Build "where" filter for Prisma
+  // Build "where" filter for Prisma — always exclude hidden/sold cars
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = {};
+  const where: any = {
+    AND: [publicWhere],
+  };
 
   // CATEGORY FILTER USING MAP
   if (category) {
     const dbCategories = REVERSE_CATEGORY_MAP[category];
     if (dbCategories?.length) {
-      where.OR = dbCategories.map((ukr) => ({
-        category: sqliteContains(ukr),
-      }));
+      where.AND.push({
+        OR: dbCategories.map((ukr) => ({
+          category: sqliteContains(ukr),
+        })),
+      });
     } else {
       // Fallback: try to match category directly
-      where.category = sqliteContains(category);
+      where.AND.push({ category: sqliteContains(category) });
     }
   }
 
   // Apply URL filters (brands, models, year, price)
   if (filters.brands) {
     const brands = (filters.brands as string).split(",");
-    where.brand = { in: brands };
+    where.AND.push({ brand: { in: brands } });
   }
   if (filters.models) {
     const models = (filters.models as string).split(",");
-    where.mark = { in: models };
+    where.AND.push({ mark: { in: models } });
   }
   if (filters.yearFrom || filters.yearTo) {
-    where.year = {};
-    if (filters.yearFrom) {
-      where.year.gte = parseInt(filters.yearFrom);
-    }
-    if (filters.yearTo) {
-      where.year.lte = parseInt(filters.yearTo);
-    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const yearRange: any = {};
+    if (filters.yearFrom) yearRange.gte = parseInt(filters.yearFrom);
+    if (filters.yearTo) yearRange.lte = parseInt(filters.yearTo);
+    where.AND.push({ year: yearRange });
   }
   if (filters.priceFrom || filters.priceTo) {
-    // Include cars with no price (null, 0, or "0") along with cars in the price range
+    // Include cars with no price (null, 0) along with cars in the price range
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const priceConditions: any[] = [];
-    
-    // Cars with price in the specified range
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const priceRange: any = {};
-    if (filters.priceFrom) {
-      priceRange.gte = parseFloat(filters.priceFrom);
-    }
-    if (filters.priceTo) {
-      priceRange.lte = parseFloat(filters.priceTo);
-    }
-
+    if (filters.priceFrom) priceRange.gte = parseFloat(filters.priceFrom);
+    if (filters.priceTo) priceRange.lte = parseFloat(filters.priceTo);
     if (Object.keys(priceRange).length > 0) {
       priceConditions.push({ price: priceRange });
-  }
-
-    // Cars with no price or price = 0
+    }
     priceConditions.push({ price: null });
     priceConditions.push({ price: 0 });
-    
-    // Combine with OR
-    if (where.OR) {
-      // If OR already exists (from category filter), we need to combine
-      const existingOR = where.OR;
-      where.AND = [
-        { OR: existingOR },
-        { OR: priceConditions }
-      ];
-      delete where.OR;
-    } else {
-      where.OR = priceConditions;
-    }
+    where.AND.push({ OR: priceConditions });
   }
 
   // Fetch cars with the filters applied

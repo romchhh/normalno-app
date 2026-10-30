@@ -146,6 +146,18 @@ export default function WizardSettingsClient() {
             />
           </div>
           <div>
+            <label className="block text-sm font-semibold mb-2">Bitrix джерело лідів (SOURCE_ID)</label>
+            <input
+              type="text"
+              value={config.bitrixLeadSourceId || ""}
+              onChange={(e) =>
+                setConfig({ ...config, bitrixLeadSourceId: e.target.value })
+              }
+              className="admin-input"
+              placeholder="NORMALNO_CATALOG"
+            />
+          </div>
+          <div>
             <label className="block text-sm font-semibold mb-2">Telegram Chat ID</label>
             <input
               type="text"

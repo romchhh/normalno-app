@@ -81,7 +81,10 @@ export async function POST(request: NextRequest) {
         username: user.username,
         phone,
       },
-      config.bitrixWebhookUrl || undefined
+      {
+        webhookUrl: config.bitrixWebhookUrl || undefined,
+        sourceId: config.bitrixLeadSourceId,
+      }
     );
 
     await prisma.wizardSession.update({

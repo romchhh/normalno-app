@@ -28,8 +28,16 @@ export async function POST(request: NextRequest) {
       body.telegramPublishChannelId !== undefined
         ? String(body.telegramPublishChannelId)
         : undefined;
+    const bitrixLeadSourceId =
+      body.bitrixLeadSourceId !== undefined
+        ? String(body.bitrixLeadSourceId)
+        : undefined;
 
-    if (telegramChatId === undefined && telegramPublishChannelId === undefined) {
+    if (
+      telegramChatId === undefined &&
+      telegramPublishChannelId === undefined &&
+      bitrixLeadSourceId === undefined
+    ) {
       return NextResponse.json(
         { error: "Немає даних для збереження" },
         { status: 400 }
@@ -57,6 +65,7 @@ export async function POST(request: NextRequest) {
             telegramPublishChannelId: channelCheck?.channelId || telegramPublishChannelId,
           }
         : {}),
+      ...(bitrixLeadSourceId !== undefined ? { bitrixLeadSourceId } : {}),
     });
 
     return NextResponse.json({

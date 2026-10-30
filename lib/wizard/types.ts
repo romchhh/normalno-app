@@ -69,6 +69,8 @@ export interface WizardConfig {
   paymentStep: number;
   defaultMonthlyPayment: number;
   bitrixWebhookUrl: string;
+  /** Bitrix crm.status SOURCE STATUS_ID (default NORMALNO_CATALOG) */
+  bitrixLeadSourceId: string;
   leasing: LeasingConfig;
   motivations: { id: string; label: string }[];
   bodyTypes: { id: string; label: string; icon?: string }[];

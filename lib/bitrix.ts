@@ -82,6 +82,49 @@ function sourceLabel(source: LeadSource): string {
   }
 }
 
+export type BitrixSendOptions = {
+  webhookUrl?: string;
+  /** crm.status SOURCE STATUS_ID; null/"" omits SOURCE_ID */
+  sourceId?: string | null;
+};
+
+/**
+ * Bitrix crm.status SOURCE ids (WEB, CALLBACK, NORMALNO_CATALOG, …).
+ * Prefer config (`bitrixLeadSourceId`); env BITRIX_LEAD_SOURCE_ID is fallback.
+ * Pass null/"" to omit SOURCE_ID.
+ */
+function getBitrixLeadSourceId(override?: string | null): string | null {
+  if (override !== undefined) {
+    const trimmed = (override ?? "").trim();
+    return trimmed ? trimmed : null;
+  }
+  const raw = process.env.BITRIX_LEAD_SOURCE_ID;
+  if (raw === undefined) return "NORMALNO_CATALOG";
+  const trimmed = raw.trim();
+  return trimmed ? trimmed : null;
+}
+
+function normalizeSendOptions(
+  options?: string | BitrixSendOptions
+): BitrixSendOptions {
+  if (typeof options === "string") return { webhookUrl: options };
+  return options ?? {};
+}
+
+function isInvalidSourceError(error?: string): boolean {
+  if (!error) return false;
+  const lower = error.toLowerCase();
+  return (
+    lower.includes("source") ||
+    lower.includes("source_id") ||
+    lower.includes("статус") ||
+    lower.includes("невірний") ||
+    lower.includes("неверный") ||
+    lower.includes("invalid") ||
+    lower.includes("not found")
+  );
+}
+
 async function callBitrixMethod(
   method: string,
   fields: Record<string, unknown>,
@@ -124,6 +167,24 @@ async function callBitrixLeadAdd(
   webhookUrl: string
 ): Promise<{ ok: boolean; leadId?: number; error?: string }> {
   const result = await callBitrixMethod("crm.lead.add", fields, webhookUrl);
+
+  // If Bitrix SOURCE "WEB" (or configured id) was deleted — retry without SOURCE_ID
+  if (
+    !result.ok &&
+    fields.SOURCE_ID != null &&
+    isInvalidSourceError(result.error)
+  ) {
+    const { SOURCE_ID: _removed, ...withoutSource } = fields;
+    const retry = await callBitrixMethod("crm.lead.add", withoutSource, webhookUrl);
+    if (retry.ok) {
+      return { ok: true, leadId: retry.id };
+    }
+    return {
+      ok: false,
+      error: `${result.error}; retry without SOURCE_ID: ${retry.error}`,
+    };
+  }
+
   return { ok: result.ok, leadId: result.id, error: result.error };
 }
 
@@ -193,7 +254,10 @@ function buildWizardComments(state: WizardState, telegramId: string, username?: 
   return lines.join("\n");
 }
 
-export function buildWizardLeadFields(payload: WizardLeadPayload): Record<string, unknown> {
+export function buildWizardLeadFields(
+  payload: WizardLeadPayload,
+  sourceIdOverride?: string | null
+): Record<string, unknown> {
   const { state, telegramId, firstName, lastName, username, phone } = payload;
   const currentCar = formatCurrentCar(state);
   const totalStartUah =
@@ -205,7 +269,6 @@ export function buildWizardLeadFields(payload: WizardLeadPayload): Record<string
     NAME: firstName,
     LAST_NAME: lastName || "",
     PHONE: [{ VALUE: phone, VALUE_TYPE: "WORK" }],
-    SOURCE_ID: "WEB",
     SOURCE_DESCRIPTION: sourceLabel("wizard"),
     CURRENCY_ID: "USD",
     OPPORTUNITY: state.maxBudget ?? convertUAHToUSD(totalStartUah),
@@ -218,6 +281,9 @@ export function buildWizardLeadFields(payload: WizardLeadPayload): Record<string
     [BITRIX_LEAD_FIELDS.ADDITIONAL_CASH]: String(state.additionalCash),
     [BITRIX_LEAD_FIELDS.CURRENT_CAR_PRICE]: String(state.currentCarPrice),
   };
+
+  const sourceId = getBitrixLeadSourceId(sourceIdOverride);
+  if (sourceId) fields.SOURCE_ID = sourceId;
 
   if (currentCar) {
     fields[BITRIX_LEAD_FIELDS.CURRENT_CAR] = currentCar;
@@ -247,7 +313,10 @@ export function buildWizardLeadFields(payload: WizardLeadPayload): Record<string
   return fields;
 }
 
-export function buildSimpleLeadFields(payload: SimpleLeadPayload): Record<string, unknown> {
+export function buildSimpleLeadFields(
+  payload: SimpleLeadPayload,
+  sourceIdOverride?: string | null
+): Record<string, unknown> {
   const source = payload.source || "contact";
   const commentParts: string[] = [];
 
@@ -274,28 +343,36 @@ export function buildSimpleLeadFields(payload: SimpleLeadPayload): Record<string
 
   commentParts.push(`Джерело: ${sourceLabel(source)}`);
 
-  return {
+  const fields: Record<string, unknown> = {
     TITLE: `Заявка NORMALNO — ${payload.name}`,
     NAME: payload.name,
     PHONE: [{ VALUE: payload.phone, VALUE_TYPE: "WORK" }],
-    SOURCE_ID: "WEB",
     SOURCE_DESCRIPTION: sourceLabel(source),
     COMMENTS: commentParts.join("\n\n"),
   };
+
+  const sourceId = getBitrixLeadSourceId(sourceIdOverride);
+  if (sourceId) fields.SOURCE_ID = sourceId;
+
+  return fields;
 }
 
 export async function sendWizardLeadToBitrix(
   payload: WizardLeadPayload,
-  webhookOverride?: string
+  options?: string | BitrixSendOptions
 ): Promise<{ ok: boolean; leadId?: number; dealId?: number; error?: string }> {
-  const webhookUrl = getBitrixWebhookUrl(webhookOverride);
+  const opts = normalizeSendOptions(options);
+  const webhookUrl = getBitrixWebhookUrl(opts.webhookUrl);
   if (!webhookUrl) {
     return { ok: false, error: "Bitrix не налаштовано: додайте BITRIX_URL в .env" };
   }
 
   // ТЗ: угода (Deal) у воронці + лід із UF-полями для зворотної сумісності
   const deal = await callBitrixDealAdd(buildWizardDealFields(payload), webhookUrl);
-  const lead = await callBitrixLeadAdd(buildWizardLeadFields(payload), webhookUrl);
+  const lead = await callBitrixLeadAdd(
+    buildWizardLeadFields(payload, opts.sourceId),
+    webhookUrl
+  );
 
   if (deal.ok || lead.ok) {
     return {
@@ -316,12 +393,13 @@ export async function sendWizardLeadToBitrix(
 
 export async function sendLeadToBitrix(
   payload: SimpleLeadPayload,
-  webhookOverride?: string
+  options?: string | BitrixSendOptions
 ): Promise<{ ok: boolean; leadId?: number; error?: string }> {
-  const webhookUrl = getBitrixWebhookUrl(webhookOverride);
+  const opts = normalizeSendOptions(options);
+  const webhookUrl = getBitrixWebhookUrl(opts.webhookUrl);
   if (!webhookUrl) {
     return { ok: false, error: "Bitrix не налаштовано: додайте BITRIX_URL в .env" };
   }
 
-  return callBitrixLeadAdd(buildSimpleLeadFields(payload), webhookUrl);
+  return callBitrixLeadAdd(buildSimpleLeadFields(payload, opts.sourceId), webhookUrl);
 }

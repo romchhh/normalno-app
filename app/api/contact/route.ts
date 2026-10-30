@@ -91,13 +91,17 @@ export async function POST(request: NextRequest) {
     let bitrixLeadId: number | undefined;
     let bitrixStatus: string | null = null;
     if (isBitrixConfigured()) {
-      const bitrix = await sendLeadToBitrix({
-        name,
-        phone,
-        comment: message,
-        source: formType === "order" ? "order" : "contact",
-        carInfo,
-      });
+      const settings = await readAppSettings();
+      const bitrix = await sendLeadToBitrix(
+        {
+          name,
+          phone,
+          comment: message,
+          source: formType === "order" ? "order" : "contact",
+          carInfo,
+        },
+        { sourceId: settings.bitrixLeadSourceId }
+      );
       if (!bitrix.ok) {
         console.error("Bitrix lead error:", bitrix.error);
         bitrixStatus = "failed";

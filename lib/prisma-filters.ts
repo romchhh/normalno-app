@@ -1,4 +1,5 @@
 import { prisma, ensureCarSchema } from "./db";
+import { publicCarStatusWhere } from "./car-status";
 
 export type CarSearchResult = {
   id: number;
@@ -30,9 +31,11 @@ export async function searchCarsByTitle(
 ): Promise<CarSearchResult[]> {
   await ensureCarSchema();
   const trimmed = query.trim();
+  const publicWhere = publicCarStatusWhere();
 
   if (!trimmed) {
     return prisma.car.findMany({
+      where: publicWhere,
       orderBy: { createdAt: "desc" },
       select: carSearchSelect,
     });
@@ -44,6 +47,11 @@ export async function searchCarsByTitle(
     SELECT id, title, photo, category, "priceUSD", year, mileage, "monthlyPayment", "paymentCurrency"
     FROM "Car"
     WHERE lower(title) LIKE lower(${pattern})
+      AND (
+        status IS NULL
+        OR status = ''
+        OR status IN ('available', 'on_order', 'reserved')
+      )
     ORDER BY "createdAt" DESC
   `;
 }

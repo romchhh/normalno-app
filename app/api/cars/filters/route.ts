@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/db";
+import { publicCarStatusWhere } from "@/lib/car-status";
 import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    // Fetch all cars to get brands and models
+    // Only public cars — brands/models for filters
     const allCars = await prisma.car.findMany({
+      where: publicCarStatusWhere(),
       select: {
         brand: true,
         mark: true,

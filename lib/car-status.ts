@@ -45,6 +45,21 @@ export function statusLabel(status: string | null | undefined): string {
   return CAR_STATUSES.find((s) => s.id === status)?.label || status || "—";
 }
 
+/** Statuses visible on the public site / catalog / search. */
+export const PUBLIC_CAR_STATUSES = ["available", "on_order", "reserved"] as const;
+
 export function isCarPubliclyListed(status: string | null | undefined): boolean {
-  return !status || status === "available" || status === "on_order" || status === "reserved";
+  if (!status) return true;
+  return (PUBLIC_CAR_STATUSES as readonly string[]).includes(status);
+}
+
+/** Prisma `where` for publicly listed cars (excludes inactive / sold). */
+export function publicCarStatusWhere() {
+  return {
+    OR: [
+      { status: null },
+      { status: "" },
+      { status: { in: [...PUBLIC_CAR_STATUSES] } },
+    ],
+  };
 }
