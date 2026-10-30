@@ -22,76 +22,70 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, phone, message, carInfo, formType } = body;
 
+    if (!name?.trim() || !phone?.trim()) {
+      return NextResponse.json(
+        { error: "Імʼя та телефон обовʼязкові" },
+        { status: 400 }
+      );
+    }
+
     const TELEGRAM_CHAT_ID = await getTelegramChatId();
+    const settings = await readAppSettings();
 
-    if (!TELEGRAM_BOT_TOKEN) {
-      console.error("TELEGRAM_BOT_TOKEN is not set in environment variables");
-      return NextResponse.json(
-        { error: "Telegram bot token is not configured. Please set TELEGRAM_BOT_TOKEN in .env file." },
-        { status: 500 }
-      );
-    }
+    // Telegram — опційно: без chat ID / token заявка все одно йде в Bitrix і БД
+    if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+      let messageText = `🔔 *Новий запит з сайту*\n\n`;
+      messageText += `📋 *Тип форми:* ${formType === "order" ? "Замовлення" : "Зв&apos;язок"}\n\n`;
+      messageText += `👤 *Ім&apos;я:* ${name}\n`;
+      messageText += `📞 *Телефон:* ${phone}\n`;
 
-    if (!TELEGRAM_CHAT_ID) {
-      console.error("TELEGRAM_CHAT_ID is not set. Check settings or .env file.");
-      return NextResponse.json(
-        { error: "Telegram chat ID is not configured. Please set it in admin settings or TELEGRAM_CHAT_ID in .env file." },
-        { status: 500 }
-      );
-    }
-
-    // Build message text
-    let messageText = `🔔 *Новий запит з сайту*\n\n`;
-    messageText += `📋 *Тип форми:* ${formType === "order" ? "Замовлення" : "Зв&apos;язок"}\n\n`;
-    messageText += `👤 *Ім&apos;я:* ${name}\n`;
-    messageText += `📞 *Телефон:* ${phone}\n`;
-
-    if (message) {
-      messageText += `💬 *Повідомлення:* ${message}\n`;
-    }
-
-    if (carInfo) {
-      messageText += `\n🚗 *Інформація про авто:*\n`;
-      messageText += `   • *Назва:* ${carInfo.title || "Не вказано"}\n`;
-      messageText += `   • *Марка:* ${carInfo.brand || "Не вказано"}\n`;
-      messageText += `   • *Модель:* ${carInfo.mark || "Не вказано"}\n`;
-      messageText += `   • *Рік:* ${carInfo.year || "Не вказано"}\n`;
-      messageText += `   • *Ціна:* ${carInfo.priceUSD ? `$${carInfo.priceUSD}` : "Ціну потрібно уточнити"}\n`;
-      if (carInfo.id) {
-        messageText += `   • *ID:* ${carInfo.id}\n`;
-        messageText += `   • *Посилання:* ${BRAND_URL}/car/${carInfo.id}\n`;
+      if (message) {
+        messageText += `💬 *Повідомлення:* ${message}\n`;
       }
-    }
 
-    messageText += `\n⏰ *Час:* ${new Date().toLocaleString("uk-UA", { timeZone: "Europe/Kyiv" })}`;
+      if (carInfo) {
+        messageText += `\n🚗 *Інформація про авто:*\n`;
+        messageText += `   • *Назва:* ${carInfo.title || "Не вказано"}\n`;
+        messageText += `   • *Марка:* ${carInfo.brand || "Не вказано"}\n`;
+        messageText += `   • *Модель:* ${carInfo.mark || "Не вказано"}\n`;
+        messageText += `   • *Рік:* ${carInfo.year || "Не вказано"}\n`;
+        messageText += `   • *Ціна:* ${carInfo.priceUSD ? `$${carInfo.priceUSD}` : "Ціну потрібно уточнити"}\n`;
+        if (carInfo.id) {
+          messageText += `   • *ID:* ${carInfo.id}\n`;
+          messageText += `   • *Посилання:* ${BRAND_URL}/car/${carInfo.id}\n`;
+        }
+      }
 
-    // Send to Telegram
-    const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-    const response = await fetch(telegramUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        text: messageText,
-        parse_mode: "Markdown",
-      }),
-    });
+      messageText += `\n⏰ *Час:* ${new Date().toLocaleString("uk-UA", { timeZone: "Europe/Kyiv" })}`;
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Telegram API error:", errorData);
-      return NextResponse.json(
-        { error: "Failed to send message to Telegram" },
-        { status: 500 }
+      try {
+        const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+        const response = await fetch(telegramUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: TELEGRAM_CHAT_ID,
+            text: messageText,
+            parse_mode: "Markdown",
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error("Telegram API error:", errorData);
+        }
+      } catch (e) {
+        console.error("Telegram send failed:", e);
+      }
+    } else if (!TELEGRAM_CHAT_ID) {
+      console.warn(
+        "TELEGRAM_CHAT_ID not set — skipping Telegram notify (Bitrix/local still run)"
       );
     }
 
     let bitrixLeadId: number | undefined;
     let bitrixStatus: string | null = null;
     if (isBitrixConfigured()) {
-      const settings = await readAppSettings();
       const bitrix = await sendLeadToBitrix(
         {
           name,
@@ -140,4 +134,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
